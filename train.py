@@ -27,6 +27,7 @@ import time
 from pathlib import Path
 
 import torch
+import torch.cuda.amp as amp
 from torch.utils.tensorboard import SummaryWriter
 
 import monai
@@ -104,6 +105,8 @@ def main():
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     log.info(f'Device: {device}')
+    # Fixed input shape → cuDNN benchmarks fastest conv algorithm once then reuses it
+    torch.backends.cudnn.benchmark = True
     monai.config.print_config()
 
     # --- DataLoaders ---
@@ -175,8 +178,10 @@ def main():
     best_dice   = -1.0
     best_epoch  = -1
     roi_size    = (args.roi_size,) * 3
+    use_amp     = device.type == 'cuda'
+    scaler      = amp.GradScaler(enabled=use_amp)
 
-    log.info(f'Starting training: {args.epochs} epochs, lr={args.lr}, roi={roi_size}')
+    log.info(f'Starting training: {args.epochs} epochs, lr={args.lr}, roi={roi_size}, AMP={use_amp}')
 
     for epoch in range(1, args.epochs + 1):
         # ------------------------------------------------------------------ #
@@ -193,11 +198,13 @@ def main():
             image = torch.stack([s['image'] for s in samples]).to(device)
             seg   = torch.stack([s['seg']   for s in samples]).to(device)
 
-            optimizer.zero_grad()
-            pred = model(image)
-            loss = loss_fn(pred, seg)
-            loss.backward()
-            optimizer.step()
+            optimizer.zero_grad(set_to_none=True)
+            with amp.autocast(enabled=use_amp):
+                pred = model(image)
+                loss = loss_fn(pred, seg)
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
 
             epoch_loss += loss.item()
             step += 1
@@ -223,9 +230,10 @@ def main():
                     val_image = val_batch['image'].to(device)
                     val_seg   = val_batch['seg'].to(device)
 
-                    val_pred = sliding_window_inference(
-                        val_image, roi_size, args.sw_batch_size, model
-                    )
+                    with amp.autocast(enabled=use_amp):
+                        val_pred = sliding_window_inference(
+                            val_image, roi_size, args.sw_batch_size, model
+                        )
                     val_pred_post  = [post_pred(p)  for p in decollate_batch(val_pred)]
                     val_label_post = [post_label(l) for l in decollate_batch(val_seg)]
                     dice_metric(y_pred=val_pred_post, y=val_label_post)
@@ -244,6 +252,7 @@ def main():
                     'epoch': epoch,
                     'model_state_dict': model.state_dict(),
                     'optimizer_state_dict': optimizer.state_dict(),
+                    'scaler_state_dict': scaler.state_dict(),
                     'val_dice': best_dice,
                     'args': vars(args),
                 }, str(ckpt_path))
@@ -256,6 +265,7 @@ def main():
                 'model_state_dict': model.state_dict(),
                 'optimizer_state_dict': optimizer.state_dict(),
                 'scheduler_state_dict': scheduler.state_dict(),
+                'scaler_state_dict': scaler.state_dict(),
                 'val_dice': best_dice,
             }, str(ckpt_dir / f'epoch_{epoch:04d}.pt'))
 

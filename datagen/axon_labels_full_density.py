@@ -95,13 +95,15 @@ class FullDensityUnidirectionalAxon(SynthAxon):
 
         from synthspline.curves import BSplineCurves
 
+        # Enable jitfields CUDA backend for fast rasterization.
+        # jitfields is installed and propagates to interpol + distmap backends.
+        import synthspline
+        synthspline.backend.jitfields = True
+
         start = time.time()
         curves = BSplineCurves(curves)
         curves.to(self.device)
-        # fast=True: skip full distance computation on voxels far from each
-        # curve (threshold = 10 × max_radius per curve via lookup table).
-        # Gives ~4-8× speedup on 128³ with thousands of curves; no accuracy loss.
-        prob, labels, dist = curves.rasterize(self.shape, mode='cosine', fast=True)
+        prob, labels, dist = curves.rasterize(self.shape, mode='cosine')
         print(f'Curves rasterized in {time.time() - start:.3f} sec')
 
         start    = time.time()
