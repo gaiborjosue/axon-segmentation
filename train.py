@@ -2,7 +2,9 @@
 Axon Segmentation — 3D UNet Training Script
 
 Uses synthetic label volumes from datagen.AxonSubsetDataset as training data.
-Images and density-varying subsets are synthesised on-the-fly by DataLoader workers.
+Workers perform fast subset selection only; image synthesis runs on GPU in the
+main process via ControlledContrastAxonImage — typically 10-30x faster than
+CPU synthesis in DataLoader workers.
 
 Usage
 -----
@@ -47,6 +49,35 @@ from monai.data import decollate_batch
 
 sys.path.insert(0, str(Path(__file__).parent))
 from datagen import create_dataloader
+from datagen.axon_image_controlled_contrast import ControlledContrastAxonImage
+
+
+# ---------------------------------------------------------------------------
+# Label grouping
+# ---------------------------------------------------------------------------
+
+def collapse_labels(label: torch.Tensor, n_groups: int = 8) -> torch.Tensor:
+    """Randomly remap unique axon IDs → 1..n_groups, keeping background=0.
+
+    ControlledContrastAxonImage.XForm.forward iterates over every unique
+    label ID for morphological ops — collapsing 3000+ axon IDs to n_groups
+    gives a ~(N_axons/n_groups)x speedup in cornucopia without changing
+    the synthesis semantics (it groups labels into intensity classes anyway).
+    """
+    out = torch.zeros_like(label)
+    unique = label.unique()
+    unique = unique[unique > 0]          # exclude background
+    if unique.numel() == 0:
+        return out
+    # Assign each axon randomly to one of n_groups groups
+    groups = torch.randint(1, n_groups + 1, (unique.numel(),),
+                           device=label.device, dtype=label.dtype)
+    # Vectorised lookup via scatter on a table
+    max_id = int(unique.max().item()) + 1
+    lut = torch.zeros(max_id, device=label.device, dtype=label.dtype)
+    lut[unique] = groups
+    out = lut[label.clamp(0, max_id - 1)]
+    return out
 
 
 # ---------------------------------------------------------------------------
@@ -72,6 +103,9 @@ def parse_args():
                    help='Sliding window roi size (isotropic). Use 128 for 128³ volumes.')
     p.add_argument('--sw_batch_size',    type=int,   default=4,
                    help='Sliding window batch size during validation')
+    p.add_argument('--n_label_groups',  type=int,   default=8,
+                   help='Collapse unique axon IDs to N groups before synthesis '
+                        '(speeds up cornucopia morphological ops ~N_axons/N times)')
     # Synthesis params
     p.add_argument('--no_images',        action='store_true',
                    help='Skip image synthesis (use raw label/prob tensors). For debugging only.')
@@ -109,8 +143,9 @@ def main():
     monai.config.print_config()
 
     # --- DataLoaders ---
-    synth_kwargs = dict(
-        generate_images=not args.no_images,
+    # Workers do subset selection only (fast RAM ops); synthesis runs on GPU below.
+    loader_kwargs = dict(
+        generate_images=False,          # workers return label/prob, not image/seg
         num_samples_per_volume=args.samples_per_vol,
         val_fraction=args.val_fraction,
         fibers_lower_range=(args.fibers_lower_lo, args.fibers_lower_hi),
@@ -122,15 +157,29 @@ def main():
         batch_size=args.batch_size,
         num_workers=args.num_workers,
         split='train',
-        **synth_kwargs,
+        **loader_kwargs,
     )
     val_loader = create_dataloader(
         label_dir=args.label_dir,
         batch_size=1,
         num_workers=max(2, args.num_workers // 4),
         split='val',
-        **synth_kwargs,
+        **loader_kwargs,
     )
+
+    # --- GPU synthesizer (cornucopia transforms are device-agnostic: run on
+    #     whatever device the input tensors live on — no .to(device) needed) ---
+    synth_kwargs = dict(
+        background=args.background,
+        fibers_lower_range=(args.fibers_lower_lo, args.fibers_lower_hi),
+        background_upper_range=(args.bg_upper_lo, args.bg_upper_hi),
+    )
+    if not args.no_images:
+        synth = ControlledContrastAxonImage(**synth_kwargs)
+        log.info('GPU synthesizer ready (ControlledContrastAxonImage)')
+    else:
+        synth = None
+        log.info('Synthesis disabled (--no_images): using prob tensor as seg directly')
 
     log.info(f'Train batches/epoch: {len(train_loader)}')
     log.info(f'Val batches:         {len(val_loader)}')
@@ -192,10 +241,23 @@ def main():
         t0 = time.time()
 
         for batch in train_loader:
-            # Apply geometric augmentation per-sample then re-stack
-            samples = [geo_aug(s) for s in decollate_batch(batch)]
-            image = torch.stack([s['image'] for s in samples]).to(device)
-            seg   = torch.stack([s['seg']   for s in samples]).to(device)
+            label = batch['label'].to(device)
+            prob  = batch['prob'].to(device)
+
+            # Collapse 3000+ axon IDs → n_groups before cornucopia morphological ops
+            label_g = collapse_labels(label, n_groups=args.n_label_groups)
+
+            # GPU synthesis — no gradients needed through cornucopia ops
+            with torch.no_grad():
+                if synth is not None:
+                    image, seg = synth(label_g, prob)
+                else:
+                    image, seg = prob.float(), prob.float()
+
+            # Geometric augmentation per-sample then re-stack
+            samples = [geo_aug(s) for s in decollate_batch({'image': image, 'seg': seg})]
+            image = torch.stack([s['image'] for s in samples])
+            seg   = torch.stack([s['seg']   for s in samples])
 
             optimizer.zero_grad(set_to_none=True)
             with torch.amp.autocast(device_type=device.type, enabled=use_amp):
@@ -226,8 +288,15 @@ def main():
             model.eval()
             with torch.no_grad():
                 for val_batch in val_loader:
-                    val_image = val_batch['image'].to(device)
-                    val_seg   = val_batch['seg'].to(device)
+                    val_label = val_batch['label'].to(device)
+                    val_prob  = val_batch['prob'].to(device)
+
+                    val_label_g = collapse_labels(val_label, n_groups=args.n_label_groups)
+
+                    if synth is not None:
+                        val_image, val_seg = synth(val_label_g, val_prob)
+                    else:
+                        val_image, val_seg = val_prob.float(), val_prob.float()
 
                     with torch.amp.autocast(device_type=device.type, enabled=use_amp):
                         val_pred = sliding_window_inference(

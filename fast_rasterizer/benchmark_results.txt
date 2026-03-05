@@ -1,0 +1,10 @@
+fast_rasterizer benchmark results
+==================================================
+device:          cuda
+GPU:             NVIDIA L40S
+shape:           (128, 128, 128)
+n_curves:        1000
+seg_length:      1.5
+batch_size:      2048
+
+fast_time_s:        0.997

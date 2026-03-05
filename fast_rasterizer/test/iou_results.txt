@@ -1,0 +1,19 @@
+IoU Sanity Check Results
+========================================
+GPU:               NVIDIA L40S
+n_curves:          2500
+shape:             (128, 128, 128)
+threshold:         0.5
+synthspline_time:  126.98s
+fast_time:         2.43s
+speedup:           52.3x
+
+iou: 0.9975627685740852
+dice: 0.9987798974509049
+fp_rate: 0.004505312233827846
+fn_rate: 0.0023395425565811683
+n_axon_ref: 2052538
+n_axon_new: 2047937
+
+prob_max_diff:  0.4580
+prob_mean_diff: 0.003019

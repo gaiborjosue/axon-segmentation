@@ -1,10 +1,10 @@
 #!/bin/bash
 #SBATCH --job-name=train_unet3d_draft
-#SBATCH --partition=mit_normal_gpu
+#SBATCH --partition=mit_preemptable
 #SBATCH --gres=gpu:1
-#SBATCH --cpus-per-task=8
+#SBATCH --cpus-per-task=6
 #SBATCH --mem=64G
-#SBATCH --time=6:00:00
+#SBATCH --time=12:00:00
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=edward.gaibor001@umb.edu
 #SBATCH --output=/home/egaibor/orcd/scratch/experiment/logs/train_unet3d_draft_%j.out
@@ -44,7 +44,7 @@ python train.py \
     --epochs         20 \
     --batch_size     2 \
     --lr             1e-4 \
-    --num_workers    6 \
+    --num_workers    4 \
     --val_fraction   0.34 \
     --val_interval   2 \
     --samples_per_vol 30 \

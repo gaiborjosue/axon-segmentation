@@ -95,15 +95,28 @@ class FullDensityUnidirectionalAxon(SynthAxon):
 
         from synthspline.curves import BSplineCurves
 
-        # Enable jitfields CUDA backend for fast rasterization.
-        # jitfields is installed and propagates to interpol + distmap backends.
+        # Use fast vectorised rasterizer (segment-patch scatter_reduce).
+        # Falls back to synthspline if fast_rasterizer is unavailable.
+        import sys, pathlib
+        _exp_dir = str(pathlib.Path(__file__).resolve().parent.parent)
+        if _exp_dir not in sys.path:
+            sys.path.insert(0, _exp_dir)
+        try:
+            from fast_rasterizer import fast_rasterize as _fast_rasterize
+            _use_fast = True
+        except ImportError:
+            _use_fast = False
+
         import synthspline
         synthspline.backend.jitfields = True
 
         start = time.time()
         curves = BSplineCurves(curves)
         curves.to(self.device)
-        prob, labels, dist = curves.rasterize(self.shape, mode='cosine')
+        if _use_fast:
+            prob, labels, dist = _fast_rasterize(curves, self.shape, mode='cosine')
+        else:
+            prob, labels, dist = curves.rasterize(self.shape, mode='cosine')
         print(f'Curves rasterized in {time.time() - start:.3f} sec')
 
         start    = time.time()
@@ -116,36 +129,11 @@ class FullDensityUnidirectionalAxon(SynthAxon):
             nblevelmap.masked_fill_(labels == i + 1, l)
         print(f'Level maps computed in {time.time() - start:.3f} sec')
 
-        start    = time.time()
-        skeleton = torch.zeros_like(labels)
-        for i, curve in enumerate(curves):
-            ind = curve.evaluate_equidistant(0.1)
-            ind = ind.round().long()
-            ind = ind[(ind[:, 0] >= 0) & (ind[:, 0] < skeleton.shape[0])]
-            ind = ind[(ind[:, 1] >= 0) & (ind[:, 1] < skeleton.shape[1])]
-            ind = ind[(ind[:, 2] >= 0) & (ind[:, 2] < skeleton.shape[2])]
-            ind = (ind[:, 2]
-                   + ind[:, 1] * skeleton.shape[2]
-                   + ind[:, 0] * skeleton.shape[2] * skeleton.shape[1])
-            skeleton.view([-1])[ind] = i + 1
-        print(f'Skeleton computed in {time.time() - start:.3f} sec')
-
-        from interpol import identity_grid
-
-        start     = time.time()
+        # Skeleton and branchmap are not saved or used downstream (only prob +
+        # labels are written to disk and loaded by the DataLoader). Skipping
+        # these loops saves ~4000-6000s per volume.
+        skeleton  = torch.zeros_like(labels)
         branchmap = torch.zeros_like(prob)
-        id_grid   = identity_grid(branchmap.shape, device=branchmap.device)
-        for branch in branchings:
-            loc, radius = branch
-            loc  = loc.to(id_grid)
-            mask = (id_grid - loc).square_().sum(-1).sqrt_() < radius + 0.5
-            if mask.any():
-                branchmap.masked_fill_(mask, True)
-            else:
-                loc = loc.round().long().tolist()
-                if all(0 <= c < s for c, s in zip(loc, branchmap.shape)):
-                    branchmap[tuple(loc)] = True
-        print(f'Branch map computed in {time.time() - start:.3f} sec')
 
         n_axons = labels.unique().numel() - 1
         print(f'Generated {n_axons} axons')
