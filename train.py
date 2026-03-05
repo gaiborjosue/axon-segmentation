@@ -27,7 +27,6 @@ import time
 from pathlib import Path
 
 import torch
-import torch.cuda.amp as amp
 from torch.utils.tensorboard import SummaryWriter
 
 import monai
@@ -179,7 +178,7 @@ def main():
     best_epoch  = -1
     roi_size    = (args.roi_size,) * 3
     use_amp     = device.type == 'cuda'
-    scaler      = amp.GradScaler(enabled=use_amp)
+    scaler      = torch.amp.GradScaler('cuda', enabled=use_amp)
 
     log.info(f'Starting training: {args.epochs} epochs, lr={args.lr}, roi={roi_size}, AMP={use_amp}')
 
@@ -199,7 +198,7 @@ def main():
             seg   = torch.stack([s['seg']   for s in samples]).to(device)
 
             optimizer.zero_grad(set_to_none=True)
-            with amp.autocast(enabled=use_amp):
+            with torch.amp.autocast(device_type=device.type, enabled=use_amp):
                 pred = model(image)
                 loss = loss_fn(pred, seg)
             scaler.scale(loss).backward()
@@ -230,7 +229,7 @@ def main():
                     val_image = val_batch['image'].to(device)
                     val_seg   = val_batch['seg'].to(device)
 
-                    with amp.autocast(enabled=use_amp):
+                    with torch.amp.autocast(device_type=device.type, enabled=use_amp):
                         val_pred = sliding_window_inference(
                             val_image, roi_size, args.sw_batch_size, model
                         )

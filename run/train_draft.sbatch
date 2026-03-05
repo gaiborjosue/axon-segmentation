@@ -4,7 +4,7 @@
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=64G
-#SBATCH --time=2:00:00
+#SBATCH --time=6:00:00
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=edward.gaibor001@umb.edu
 #SBATCH --output=/home/egaibor/orcd/scratch/experiment/logs/train_unet3d_draft_%j.out
