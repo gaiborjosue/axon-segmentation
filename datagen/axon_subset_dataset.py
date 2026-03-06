@@ -235,8 +235,8 @@ class AxonSubsetDataset(Dataset):
     transform : callable, optional
         Additional transform applied to the output dict after synthesis.
     num_samples_per_volume : int
-        Number of random subsets drawn from each source volume per epoch.
-    fibers_lower_range : (float, float)
+        Number of random subsets drawn from each source volume per epoch.    max_volumes : int, optional
+        Cap the number of label volumes loaded. ``None`` means use all.    fibers_lower_range : (float, float)
         Uniform range for the axon intensity floor (passed to synthesizer).
     background_upper_range : (float, float)
         Uniform range for the background intensity ceiling.
@@ -252,6 +252,7 @@ class AxonSubsetDataset(Dataset):
         generate_images: bool = True,
         transform: Optional[Callable] = None,
         num_samples_per_volume: int = 100,
+        max_volumes: Optional[int] = None,
         fibers_lower_range: Tuple[float, float] = (0.3, 0.5),
         background_upper_range: Tuple[float, float] = (0.2, 0.4),
         background: float = 0.5,
@@ -275,6 +276,8 @@ class AxonSubsetDataset(Dataset):
         all_label_files: List[Path] = sorted(self.label_dir.glob('*_label.nii.gz'))
         if not all_label_files:
             raise ValueError(f'No *_label.nii.gz files found in {label_dir}')
+        if max_volumes is not None:
+            all_label_files = all_label_files[:max_volumes]
 
         # --- Deterministic train / val split (fix #5) ---
         n_val = max(1, int(len(all_label_files) * val_fraction))

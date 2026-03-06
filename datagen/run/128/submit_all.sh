@@ -1,24 +1,27 @@
 #!/bin/bash
-# Submit the next pending batch of 400 volumes (one batch at a time).
-# MaxSubmit=500 per user (normal QOS) → 400-task batch fits safely.
-# Re-run this script after each batch finishes to queue the next one.
-#
+# Submit the next pending batch, using sparse --array for partial batches.
 # Batches: 0–399 | 400–799 | 800–1199 | 1200–1599 | 1600–1999
-# Usage:   ./submit_all.sh          # submits only the next needed batch
-#          ./submit_all.sh --all    # chains all remaining batches (careful: counts toward MaxSubmit)
 
 SCRIPT="$(dirname "$0")/gen_labels_array.sbatch"
 BASE_DIR="/home/egaibor/orcd/scratch/experiment/dense_labels"
-
 BATCHES=("0 399" "400 799" "800 1199" "1200 1599" "1600 1999")
 
-count_done() {
-    local lo=$1 hi=$2 n=0
+get_split() {
+    local i=$1
+    if [[ $i -lt 1700 ]]; then echo "train"
+    elif [[ $i -lt 1900 ]]; then echo "val"
+    else echo "test"; fi
+}
+
+missing_ids() {
+    local lo=$1 hi=$2 ids=""
     for i in $(seq $lo $hi); do
-        local s; if [[ $i -lt 1700 ]]; then s="train"; elif [[ $i -lt 1900 ]]; then s="val"; else s="test"; fi
-        [[ -f "$BASE_DIR/$s/vol$(printf '%04d' $i)_label.nii.gz" ]] && ((n++))
+        local s=$(get_split $i)
+        if [[ ! -f "$BASE_DIR/$s/vol$(printf '%04d' $i)_label.nii.gz" ]]; then
+            ids="${ids}${i},"
+        fi
     done
-    echo $n
+    echo "${ids%,}"  # strip trailing comma
 }
 
 ALL_MODE=0; [[ "${1:-}" == "--all" ]] && ALL_MODE=1
@@ -27,18 +30,19 @@ PREV_JID=""
 for BATCH in "${BATCHES[@]}"; do
     LO=${BATCH%% *}; HI=${BATCH##* }
     TOTAL=$(( HI - LO + 1 ))
-    DONE=$(count_done $LO $HI)
+    MISSING=$(missing_ids $LO $HI)
 
-    if [[ $DONE -eq $TOTAL ]]; then
-        echo "Batch $LO–$HI: complete ($DONE/$TOTAL) — skipping"; continue
+    if [[ -z "$MISSING" ]]; then
+        echo "Batch $LO–$HI: complete — skipping"; continue
     fi
 
-    echo "Batch $LO–$HI: $DONE/$TOTAL done — submitting..."
+    N_MISSING=$(echo "$MISSING" | tr ',' '\n' | wc -l)
+    echo "Batch $LO–$HI: $N_MISSING missing — submitting sparse array..."
     DEP_FLAG=""; [[ -n "$PREV_JID" ]] && DEP_FLAG="--dependency=afterany:$PREV_JID"
 
-    JID=$(sbatch --array=${LO}-${HI}%50 $DEP_FLAG "$SCRIPT" | awk '{print $NF}')
+    JID=$(sbatch --array=${MISSING}%4 $DEP_FLAG "$SCRIPT" | awk '{print $NF}')
     if [[ -z "$JID" ]]; then echo "  ERROR: submission failed"; exit 1; fi
-    echo "  → job $JID  (${TOTAL} tasks, 50 at a time)"
+    echo "  → job $JID  ($N_MISSING tasks)"
 
     if [[ $ALL_MODE -eq 0 ]]; then
         echo ""

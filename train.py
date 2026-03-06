@@ -24,6 +24,7 @@ Minimal draft test (3 volumes, 10 epochs):
 import argparse
 import logging
 import os
+import signal
 import sys
 import time
 from pathlib import Path
@@ -32,7 +33,8 @@ import torch
 from torch.utils.tensorboard import SummaryWriter
 
 import monai
-from monai.utils import set_determinism
+# NOTE: set_determinism not used — manual seeding + cudnn.benchmark=True
+# from monai.utils import set_determinism
 from monai.networks.nets import UNet
 from monai.networks.layers import Norm
 from monai.losses import DiceCELoss
@@ -98,6 +100,8 @@ def parse_args():
                    help='Run validation every N epochs')
     p.add_argument('--samples_per_vol',  type=int,   default=100,
                    help='Random subsets drawn per label volume per epoch')
+    p.add_argument('--max_volumes',      type=int,   default=None,
+                   help='Cap number of label volumes loaded (None = all). Applied before train/val split.')
     p.add_argument('--seed',             type=int,   default=42)
     p.add_argument('--roi_size',         type=int,   default=128,
                    help='Sliding window roi size (isotropic). Use 128 for 128³ volumes.')
@@ -114,6 +118,8 @@ def parse_args():
     p.add_argument('--fibers_lower_hi',  type=float, default=0.5)
     p.add_argument('--bg_upper_lo',      type=float, default=0.2)
     p.add_argument('--bg_upper_hi',      type=float, default=0.4)
+    p.add_argument('--resume',           action='store_true',
+                   help='Resume from latest checkpoint in output_dir/checkpoints/')
     return p.parse_args()
 
 
@@ -125,7 +131,11 @@ def main():
     args = parse_args()
 
     # --- Setup ---
-    set_determinism(seed=args.seed)
+    # Manual seeding (set_determinism also sets cudnn.deterministic=True
+    # and benchmark=False, but we want benchmark=True for speed).
+    torch.manual_seed(args.seed)
+    import numpy as _np; _np.random.seed(args.seed)
+    import random as _pyrandom; _pyrandom.seed(args.seed)
     logging.basicConfig(stream=sys.stdout, level=logging.INFO,
                         format='%(asctime)s %(levelname)s %(message)s')
     log = logging.getLogger(__name__)
@@ -148,6 +158,7 @@ def main():
         generate_images=False,          # workers return label/prob, not image/seg
         num_samples_per_volume=args.samples_per_vol,
         val_fraction=args.val_fraction,
+        max_volumes=args.max_volumes,
         fibers_lower_range=(args.fibers_lower_lo, args.fibers_lower_hi),
         background_upper_range=(args.bg_upper_lo, args.bg_upper_hi),
         background=args.background,
@@ -225,13 +236,51 @@ def main():
 
     best_dice   = -1.0
     best_epoch  = -1
+    start_epoch = 1
     roi_size    = (args.roi_size,) * 3
     use_amp     = device.type == 'cuda'
     scaler      = torch.amp.GradScaler('cuda', enabled=use_amp)
 
+    # --- Resume from checkpoint ---
+    if args.resume:
+        ckpts = sorted(ckpt_dir.glob('epoch_*.pt'))
+        resume_ckpt = ckpts[-1] if ckpts else (ckpt_dir / 'best_model.pt' if (ckpt_dir / 'best_model.pt').exists() else None)
+        if resume_ckpt and resume_ckpt.exists():
+            log.info(f'Resuming from {resume_ckpt}')
+            ckpt = torch.load(str(resume_ckpt), map_location=device)
+            model.load_state_dict(ckpt['model_state_dict'])
+            optimizer.load_state_dict(ckpt['optimizer_state_dict'])
+            if 'scheduler_state_dict' in ckpt:
+                scheduler.load_state_dict(ckpt['scheduler_state_dict'])
+            if 'scaler_state_dict' in ckpt:
+                scaler.load_state_dict(ckpt['scaler_state_dict'])
+            start_epoch = ckpt.get('epoch', 0) + 1
+            best_dice   = ckpt.get('val_dice', -1.0)
+            best_epoch  = ckpt.get('best_epoch', -1)
+            log.info(f'Resumed at epoch {start_epoch}, best_dice={best_dice:.4f} @ epoch {best_epoch}')
+        else:
+            log.info('--resume set but no checkpoint found — starting from scratch')
+
+    # --- Preemption handler: save checkpoint on SIGTERM so job can be resumed ---
+    def _save_preemption_ckpt(signum, frame):
+        log.info('SIGTERM received — saving preemption checkpoint...')
+        torch.save({
+            'epoch': epoch,
+            'model_state_dict': model.state_dict(),
+            'optimizer_state_dict': optimizer.state_dict(),
+            'scheduler_state_dict': scheduler.state_dict(),
+            'scaler_state_dict': scaler.state_dict(),
+            'val_dice': best_dice,
+            'best_epoch': best_epoch,
+        }, str(ckpt_dir / f'epoch_{epoch:04d}.pt'))
+        log.info(f'Preemption checkpoint saved at epoch {epoch}. Resubmit with --resume.')
+        sys.exit(0)
+    signal.signal(signal.SIGTERM, _save_preemption_ckpt)
+
+    epoch = 0  # guard: defined before loop in case SIGTERM fires during setup
     log.info(f'Starting training: {args.epochs} epochs, lr={args.lr}, roi={roi_size}, AMP={use_amp}')
 
-    for epoch in range(1, args.epochs + 1):
+    for epoch in range(start_epoch, args.epochs + 1):
         # ------------------------------------------------------------------ #
         # Train
         # ------------------------------------------------------------------ #
@@ -286,6 +335,7 @@ def main():
         # ------------------------------------------------------------------ #
         if epoch % args.val_interval == 0 or epoch == args.epochs:
             model.eval()
+            log_images_this_epoch = True   # capture first val batch for TensorBoard
             with torch.no_grad():
                 for val_batch in val_loader:
                     val_label = val_batch['label'].to(device)
@@ -306,6 +356,19 @@ def main():
                     val_label_post = [post_label(l) for l in decollate_batch(val_seg)]
                     dice_metric(y_pred=val_pred_post, y=val_label_post)
 
+                    # Log center-slice images from first batch only
+                    if log_images_this_epoch:
+                        log_images_this_epoch = False
+                        z = val_image.shape[-1] // 2  # center axial slice
+                        # Normalise image slice to [0,1] for display
+                        img_slice  = val_image[0, 0, :, :, z]
+                        img_slice  = (img_slice - img_slice.min()) / (img_slice.max() - img_slice.min() + 1e-8)
+                        seg_slice  = val_seg[0, 0, :, :, z]
+                        pred_slice = torch.sigmoid(val_pred[0, 0, :, :, z])
+                        # Stack side-by-side: image | ground truth | prediction
+                        grid = torch.stack([img_slice, seg_slice, pred_slice], dim=0).unsqueeze(1)  # (3,1,H,W)
+                        writer.add_images('val/image_gt_pred', grid, epoch, dataformats='NCHW')
+
             mean_dice = dice_metric.aggregate().item()
             dice_metric.reset()
 
@@ -320,22 +383,23 @@ def main():
                     'epoch': epoch,
                     'model_state_dict': model.state_dict(),
                     'optimizer_state_dict': optimizer.state_dict(),
+                    'scheduler_state_dict': scheduler.state_dict(),
                     'scaler_state_dict': scaler.state_dict(),
                     'val_dice': best_dice,
+                    'best_epoch': best_epoch,
                     'args': vars(args),
                 }, str(ckpt_path))
                 log.info(f'  Saved best checkpoint → {ckpt_path}')
 
-        # Save periodic checkpoint every 50 epochs
-        if epoch % 50 == 0:
+        # Save periodic checkpoint every 10 epochs
+        if epoch % 10 == 0:
             torch.save({
                 'epoch': epoch,
                 'model_state_dict': model.state_dict(),
                 'optimizer_state_dict': optimizer.state_dict(),
                 'scheduler_state_dict': scheduler.state_dict(),
                 'scaler_state_dict': scaler.state_dict(),
-                'val_dice': best_dice,
-            }, str(ckpt_dir / f'epoch_{epoch:04d}.pt'))
+                'val_dice': best_dice,            'best_epoch': best_epoch,            }, str(ckpt_dir / f'epoch_{epoch:04d}.pt'))
 
     # --- Final summary ---
     log.info('='*60)
