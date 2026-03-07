@@ -12,6 +12,7 @@
 
 # ==============================================================================
 # Production training run — 400 label volumes, 200 epochs, 2 samples/vol
+# Cached training: rebuild synthetic train cache every 3 epochs; fixed cached val every epoch
 #
 # Label dir:  /scratch/experiment/dense_labels/train/  (1199 vols available)
 # --max_volumes 400 → 320 train + 80 val
@@ -52,8 +53,9 @@ python train.py \
     --lr              1e-4 \
     --num_workers     44 \
     --val_fraction    0.2 \
-    --val_interval    2 \
+    --val_interval    1 \
     --samples_per_vol 2  \
+    --cache_epochs    3 \
     --max_volumes     400 \
     --roi_size        128 \
     --sw_batch_size   4 \

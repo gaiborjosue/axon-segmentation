@@ -398,8 +398,10 @@ class AxonSubsetDataset(Dataset):
 
         # Deterministic validation: same idx always produces identical sample (fix #6)
         if self.split == 'val':
-            np.random.seed(idx % (2 ** 31))
-            pyrandom.seed(idx)
+            seed = idx % (2 ** 31)
+            np.random.seed(seed)
+            pyrandom.seed(seed)
+            torch.manual_seed(seed)
 
         _t0 = _time.monotonic()
         keep_prob_field = density_config = None
@@ -510,6 +512,9 @@ def create_dataloader(
     batch_size: int = 2,
     num_workers: int = 10,
     pin_memory: bool = True,
+    shuffle: Optional[bool] = None,
+    drop_last: bool = True,
+    persistent_workers: Optional[bool] = None,
     **dataset_kwargs,
 ) -> torch.utils.data.DataLoader:
     """Convenience factory: AxonSubsetDataset → DataLoader.
@@ -528,17 +533,23 @@ def create_dataloader(
     - ``collate_fn``         — tensor-only batching, drops metadata (fix #3)
     - ``persistent_workers`` — workers stay alive between epochs, preserving
                                the in-memory volume cache
+    - ``shuffle``/``drop_last`` can be overridden per split so validation
+      semantics stay fixed and training can still drop partial batches.
     """
     dataset = AxonSubsetDataset(label_dir, **dataset_kwargs)
+    if shuffle is None:
+        shuffle = (dataset.split == 'train')
+    if persistent_workers is None:
+        persistent_workers = (num_workers > 0)
     return torch.utils.data.DataLoader(
         dataset,
         batch_size=batch_size,
-        shuffle=(dataset.split == 'train'),
+        shuffle=shuffle,
         num_workers=num_workers,
         pin_memory=pin_memory,
         collate_fn=collate_fn,
         worker_init_fn=worker_init_fn,
-        persistent_workers=(num_workers > 0),
-        drop_last=True,
+        persistent_workers=persistent_workers,
+        drop_last=drop_last,
         prefetch_factor=(4 if num_workers > 0 else None),
     )

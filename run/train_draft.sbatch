@@ -12,6 +12,7 @@
 
 # ==============================================================================
 # Draft training run — 3 label volumes, 20 epochs
+# Cached training: rebuild synthetic train cache every 3 epochs; fixed cached val every epoch
 #
 # Purpose: verify DataLoader → UNet → loss decrease → val Dice > 0
 #
@@ -46,8 +47,9 @@ python train.py \
     --lr             1e-4 \
     --num_workers    4 \
     --val_fraction   0.34 \
-    --val_interval   2 \
+    --val_interval   1 \
     --samples_per_vol 30 \
+    --cache_epochs   3 \
     --roi_size       128 \
     --sw_batch_size  4 \
     --seed           42

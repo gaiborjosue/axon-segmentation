@@ -1,33 +1,21 @@
 """
 Axon Segmentation — 3D UNet Training Script
 
-Two-GPU pipeline: GPU 0 runs cornucopia synthesis in a background thread,
-GPU 1 runs the UNet forward/backward pass. A queue decouples them so
-synthesis and training overlap.
-
-Workers perform fast subset selection on CPU; label/prob tensors are sent to
-GPU 0 for synthesis via ControlledContrastAxonImage.
-
-Usage
------
-    python train.py \
-        --label_dir /path/to/dense_labels \
-        --output_dir /path/to/output \
-        --epochs 200 \
-        --batch_size 2
+Training samples are synthesized from dense label volumes on demand, cached in
+RAM for a configurable number of epochs, and refreshed from the dense source
+volumes between cache cycles. Validation is synthesized once at startup and
+kept fixed for the entire run so checkpoint selection is stable.
 """
 
 import argparse
 import logging
-import os
-import queue
 import signal
 import sys
-import threading
 import time
 from pathlib import Path
 
 import torch
+from torch.utils.data import DataLoader, Dataset
 from torch.utils.tensorboard import SummaryWriter
 
 import monai
@@ -50,86 +38,78 @@ from monai.data import decollate_batch
 
 sys.path.insert(0, str(Path(__file__).parent))
 from datagen import create_dataloader
-from datagen.axon_image_controlled_contrast import ControlledContrastAxonImage
 
 
-# ---------------------------------------------------------------------------
-# Label grouping
-# ---------------------------------------------------------------------------
+class CachedTensorDataset(Dataset):
+    """Small dict-style dataset backed by in-memory tensors."""
 
-def collapse_labels(label: torch.Tensor, n_groups: int = 8) -> torch.Tensor:
-    """Randomly remap unique axon IDs → 1..n_groups, keeping background=0."""
-    out = torch.zeros_like(label)
-    unique = label.unique()
-    unique = unique[unique > 0]
-    if unique.numel() == 0:
-        return out
-    groups = torch.randint(1, n_groups + 1, (unique.numel(),),
-                           device=label.device, dtype=label.dtype)
-    max_id = int(unique.max().item()) + 1
-    lut = torch.zeros(max_id, device=label.device, dtype=label.dtype)
-    lut[unique] = groups
-    out = lut[label.clamp(0, max_id - 1)]
-    return out
+    def __init__(self, images: torch.Tensor, segs: torch.Tensor):
+        if images.shape[0] != segs.shape[0]:
+            raise ValueError(
+                f'Cached tensors disagree on batch dimension: '
+                f'images={tuple(images.shape)} segs={tuple(segs.shape)}'
+            )
+        self.images = images.contiguous()
+        self.segs = segs.contiguous()
+
+    def __len__(self) -> int:
+        return int(self.images.shape[0])
+
+    def __getitem__(self, idx: int) -> dict:
+        return {
+            'image': self.images[idx],
+            'seg': self.segs[idx],
+        }
 
 
-# ---------------------------------------------------------------------------
-# Two-GPU prefetcher: synthesis on GPU 0, training on GPU 1
-# ---------------------------------------------------------------------------
+def build_tensor_cache(loader, split: str, log: logging.Logger) -> CachedTensorDataset:
+    """Materialize one full pass of a source loader into RAM."""
+    t0 = time.time()
+    image_batches = []
+    seg_batches = []
 
-class SynthPrefetcher:
-    """Background-thread prefetcher: runs cornucopia synthesis on synth_device
-    and pushes ready (image, seg) tensors on train_device into a queue.
+    for batch_idx, batch in enumerate(loader, start=1):
+        if 'image' not in batch or 'seg' not in batch:
+            raise KeyError(
+                f"Source {split} batch is missing 'image'/'seg' keys. "
+                f'Available keys: {sorted(batch.keys())}'
+            )
+        image_batches.append(batch['image'].detach().cpu().clone().float())
+        seg_batches.append(batch['seg'].detach().cpu().clone().float())
+        if batch_idx == 1 or batch_idx % 50 == 0 or batch_idx == len(loader):
+            log.info(f'  caching {split}: batch {batch_idx:3d}/{len(loader)}')
 
-    The main training loop simply iterates over this like a dataloader.
-    Because synthesis and training run on different GPUs, they overlap.
-    """
+    if not image_batches:
+        raise RuntimeError(f'Failed to build {split} cache: source loader yielded no batches')
 
-    def __init__(self, dataloader, synth, synth_device, train_device,
-                 n_label_groups=8, queue_depth=4, timeout=30):
-        self.dataloader = dataloader
-        self.synth = synth
-        self.synth_device = synth_device
-        self.train_device = train_device
-        self.n_label_groups = n_label_groups
-        self.queue_depth = queue_depth
-        self.timeout = timeout
+    images = torch.cat(image_batches, dim=0).contiguous()
+    segs = torch.cat(seg_batches, dim=0).contiguous()
+    n_bytes = images.numel() * images.element_size() + segs.numel() * segs.element_size()
+    elapsed = time.time() - t0
+    log.info(
+        f'Built {split} cache: {images.shape[0]} samples | '
+        f'{n_bytes / (1024 ** 3):.2f} GiB | {elapsed:.1f}s'
+    )
+    return CachedTensorDataset(images, segs)
 
-    def _produce(self, q, stop_event):
-        """Worker thread: synthesize batches and enqueue them."""
-        for batch in self.dataloader:
-            if stop_event.is_set():
-                break
-            label = batch['label'].to(self.synth_device, non_blocking=True)
-            prob  = batch['prob'].to(self.synth_device, non_blocking=True)
-            label_g = collapse_labels(label, n_groups=self.n_label_groups)
-            try:
-                with torch.no_grad():
-                    image, seg = self.synth(label_g, prob)
-                # Move to training GPU
-                image = image.to(self.train_device, non_blocking=True)
-                seg   = seg.to(self.train_device, non_blocking=True)
-                q.put((image, seg))
-            except Exception as e:
-                # Synthesis failure (timeout, bad input, etc.) — skip batch
-                logging.getLogger(__name__).warning(f'Synth failed, skipping batch: {e}')
-                continue
-        q.put(None)  # sentinel: epoch done
 
-    def __iter__(self):
-        q = queue.Queue(maxsize=self.queue_depth)
-        stop_event = threading.Event()
-        t = threading.Thread(target=self._produce, args=(q, stop_event), daemon=True)
-        t.start()
-        while True:
-            item = q.get()
-            if item is None:
-                break
-            yield item
-        t.join(timeout=5)
-
-    def __len__(self):
-        return len(self.dataloader)
+def create_cached_loader(
+    dataset: CachedTensorDataset,
+    batch_size: int,
+    *,
+    shuffle: bool,
+    drop_last: bool,
+    pin_memory: bool = True,
+) -> DataLoader:
+    """Serve cached tensors with lightweight loader settings."""
+    return DataLoader(
+        dataset,
+        batch_size=batch_size,
+        shuffle=shuffle,
+        num_workers=0,
+        pin_memory=pin_memory,
+        drop_last=drop_last,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -150,6 +130,8 @@ def parse_args():
                    help='Run validation every N epochs')
     p.add_argument('--samples_per_vol',  type=int,   default=100,
                    help='Random subsets drawn per label volume per epoch')
+    p.add_argument('--cache_epochs',     type=int,   default=1,
+                   help='Reuse each synthesized train cache for N epochs before refreshing')
     p.add_argument('--max_volumes',      type=int,   default=None,
                    help='Cap number of label volumes loaded (None = all). Applied before train/val split.')
     p.add_argument('--seed',             type=int,   default=42)
@@ -189,6 +171,8 @@ def main():
     logging.basicConfig(stream=sys.stdout, level=logging.INFO,
                         format='%(asctime)s %(levelname)s %(message)s')
     log = logging.getLogger(__name__)
+    if args.cache_epochs < 1:
+        raise ValueError(f'--cache_epochs must be >= 1, got {args.cache_epochs}')
 
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -202,8 +186,8 @@ def main():
     torch.backends.cudnn.benchmark = True
     monai.config.print_config()
 
-    # --- DataLoaders ---
-    # Workers run cornucopia CPU synthesis in parallel (generate_images=True).
+    # --- Source DataLoaders ---
+    # Workers run cornucopia CPU synthesis in parallel to build RAM caches.
     loader_kwargs = dict(
         generate_images=(not args.no_images),
         num_samples_per_volume=args.samples_per_vol,
@@ -214,24 +198,30 @@ def main():
         background_upper_range=(args.bg_upper_lo, args.bg_upper_hi),
         background=args.background,
     )
-    train_loader = create_dataloader(
+    train_source_loader = create_dataloader(
         label_dir=args.label_dir,
         batch_size=args.batch_size,
         num_workers=args.num_workers,
         split='train',
+        shuffle=True,
+        drop_last=True,
+        persistent_workers=True,
         **loader_kwargs,
     )
-    val_loader = create_dataloader(
+    val_source_loader = create_dataloader(
         label_dir=args.label_dir,
         batch_size=1,
         num_workers=max(2, args.num_workers // 4),
         split='val',
+        shuffle=False,
+        drop_last=False,
+        persistent_workers=False,
         **loader_kwargs,
     )
 
     log.info(f'Workers handle CPU synthesis (generate_images={not args.no_images})')
-    log.info(f'Train batches/epoch: {len(train_loader)}')
-    log.info(f'Val batches:         {len(val_loader)}')
+    log.info(f'Source train batches/cache build: {len(train_source_loader)}')
+    log.info(f'Source val batches/cache build:   {len(val_source_loader)}')
 
     # --- Post-batch augmentation ---
     # Geometric: applied to both image and seg.
@@ -294,6 +284,16 @@ def main():
     use_amp     = device.type == 'cuda'
     scaler      = torch.amp.GradScaler('cuda', enabled=use_amp)
 
+    log.info('Building fixed validation cache...')
+    val_cache = build_tensor_cache(val_source_loader, split='val', log=log)
+    val_loader = create_cached_loader(
+        val_cache,
+        batch_size=1,
+        shuffle=False,
+        drop_last=False,
+    )
+    log.info(f'Validation cache ready: {len(val_cache)} samples, {len(val_loader)} batches')
+
     # --- Resume from checkpoint ---
     if args.resume:
         ckpts = sorted(ckpt_dir.glob('epoch_*.pt'))
@@ -314,29 +314,70 @@ def main():
         else:
             log.info('--resume set but no checkpoint found — starting from scratch')
 
-    # --- Preemption handler: save checkpoint on SIGTERM so job can be resumed ---
-    def _save_preemption_ckpt(signum, frame):
-        log.info('SIGTERM received — saving preemption checkpoint...')
-        torch.save({
-            'epoch': epoch,
+    train_cache = None
+    train_loader = None
+    train_cache_start_epoch = None
+    total_train_epochs = max(0, args.epochs - start_epoch + 1)
+    total_cache_cycles = (
+        (total_train_epochs + args.cache_epochs - 1) // args.cache_epochs
+        if total_train_epochs > 0 else 0
+    )
+
+    def _checkpoint_state(epoch_num: int) -> dict:
+        return {
+            'epoch': epoch_num,
             'model_state_dict': model.state_dict(),
             'optimizer_state_dict': optimizer.state_dict(),
             'scheduler_state_dict': scheduler.state_dict(),
             'scaler_state_dict': scaler.state_dict(),
             'val_dice': best_dice,
             'best_epoch': best_epoch,
-        }, str(ckpt_dir / f'epoch_{epoch:04d}.pt'))
+            'args': vars(args),
+            'train_cache_start_epoch': train_cache_start_epoch,
+        }
+
+    # --- Preemption handler: save checkpoint on SIGTERM so job can be resumed ---
+    def _save_preemption_ckpt(signum, frame):
+        log.info('SIGTERM received — saving preemption checkpoint...')
+        torch.save(_checkpoint_state(epoch), str(ckpt_dir / f'epoch_{epoch:04d}.pt'))
         log.info(f'Preemption checkpoint saved at epoch {epoch}. Resubmit with --resume.')
         sys.exit(0)
     signal.signal(signal.SIGTERM, _save_preemption_ckpt)
 
     epoch = 0  # guard: defined before loop in case SIGTERM fires during setup
-    log.info(f'Starting training: {args.epochs} epochs, lr={args.lr}, roi={roi_size}, AMP={use_amp}')
+    log.info(
+        f'Starting training: {args.epochs} epochs, lr={args.lr}, roi={roi_size}, '
+        f'AMP={use_amp}, cache_epochs={args.cache_epochs}'
+    )
 
     for epoch in range(start_epoch, args.epochs + 1):
         # ------------------------------------------------------------------ #
         # Train
         # ------------------------------------------------------------------ #
+        if train_loader is None or epoch >= train_cache_start_epoch + args.cache_epochs:
+            train_cache_start_epoch = epoch
+            cache_cycle_idx = ((epoch - start_epoch) // args.cache_epochs) + 1
+            cache_cycle_len = min(args.cache_epochs, args.epochs - epoch + 1)
+            log.info(
+                f'Building train cache cycle {cache_cycle_idx}/{total_cache_cycles} '
+                f'for epochs {epoch}-{epoch + cache_cycle_len - 1}...'
+            )
+            train_cache = build_tensor_cache(train_source_loader, split='train', log=log)
+            train_loader = create_cached_loader(
+                train_cache,
+                batch_size=args.batch_size,
+                shuffle=True,
+                drop_last=True,
+            )
+            log.info(f'Train cache ready: {len(train_cache)} samples, {len(train_loader)} batches')
+        else:
+            cache_cycle_len = min(args.cache_epochs, args.epochs - train_cache_start_epoch + 1)
+            cache_reuse_idx = epoch - train_cache_start_epoch + 1
+            log.info(
+                f'Reusing train cache from epoch {train_cache_start_epoch} '
+                f'({cache_reuse_idx}/{cache_cycle_len})'
+            )
+
         model.train()
         epoch_loss = 0.0
         step = 0
@@ -433,27 +474,12 @@ def main():
                 best_dice  = mean_dice
                 best_epoch = epoch
                 ckpt_path  = ckpt_dir / 'best_model.pt'
-                torch.save({
-                    'epoch': epoch,
-                    'model_state_dict': model.state_dict(),
-                    'optimizer_state_dict': optimizer.state_dict(),
-                    'scheduler_state_dict': scheduler.state_dict(),
-                    'scaler_state_dict': scaler.state_dict(),
-                    'val_dice': best_dice,
-                    'best_epoch': best_epoch,
-                    'args': vars(args),
-                }, str(ckpt_path))
+                torch.save(_checkpoint_state(epoch), str(ckpt_path))
                 log.info(f'  Saved best checkpoint → {ckpt_path}')
 
         # Save periodic checkpoint every 10 epochs
         if epoch % 10 == 0:
-            torch.save({
-                'epoch': epoch,
-                'model_state_dict': model.state_dict(),
-                'optimizer_state_dict': optimizer.state_dict(),
-                'scheduler_state_dict': scheduler.state_dict(),
-                'scaler_state_dict': scaler.state_dict(),
-                'val_dice': best_dice,            'best_epoch': best_epoch,            }, str(ckpt_dir / f'epoch_{epoch:04d}.pt'))
+            torch.save(_checkpoint_state(epoch), str(ckpt_dir / f'epoch_{epoch:04d}.pt'))
 
     # --- Final summary ---
     log.info('='*60)
