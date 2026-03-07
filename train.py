@@ -1,10 +1,12 @@
 """
 Axon Segmentation — 3D UNet Training Script
 
-Uses synthetic label volumes from datagen.AxonSubsetDataset as training data.
-Workers perform fast subset selection only; image synthesis runs on GPU in the
-main process via ControlledContrastAxonImage — typically 10-30x faster than
-CPU synthesis in DataLoader workers.
+Two-GPU pipeline: GPU 0 runs cornucopia synthesis in a background thread,
+GPU 1 runs the UNet forward/backward pass. A queue decouples them so
+synthesis and training overlap.
+
+Workers perform fast subset selection on CPU; label/prob tensors are sent to
+GPU 0 for synthesis via ControlledContrastAxonImage.
 
 Usage
 -----
@@ -13,19 +15,15 @@ Usage
         --output_dir /path/to/output \
         --epochs 200 \
         --batch_size 2
-
-Minimal draft test (3 volumes, 10 epochs):
-    python train.py \
-        --label_dir /scratch/experiment/draft/dense_labels \
-        --output_dir /scratch/experiment/draft/training_out \
-        --epochs 10 --batch_size 2 --num_workers 4 --val_fraction 0.5
 """
 
 import argparse
 import logging
 import os
+import queue
 import signal
 import sys
+import threading
 import time
 from pathlib import Path
 
@@ -33,8 +31,6 @@ import torch
 from torch.utils.tensorboard import SummaryWriter
 
 import monai
-# NOTE: set_determinism not used — manual seeding + cudnn.benchmark=True
-# from monai.utils import set_determinism
 from monai.networks.nets import UNet
 from monai.networks.layers import Norm
 from monai.losses import DiceCELoss
@@ -46,6 +42,9 @@ from monai.transforms import (
     Compose,
     RandFlipd,
     RandRotate90d,
+    RandScaleIntensityd,
+    RandShiftIntensityd,
+    RandGaussianNoised,
 )
 from monai.data import decollate_batch
 
@@ -59,27 +58,78 @@ from datagen.axon_image_controlled_contrast import ControlledContrastAxonImage
 # ---------------------------------------------------------------------------
 
 def collapse_labels(label: torch.Tensor, n_groups: int = 8) -> torch.Tensor:
-    """Randomly remap unique axon IDs → 1..n_groups, keeping background=0.
-
-    ControlledContrastAxonImage.XForm.forward iterates over every unique
-    label ID for morphological ops — collapsing 3000+ axon IDs to n_groups
-    gives a ~(N_axons/n_groups)x speedup in cornucopia without changing
-    the synthesis semantics (it groups labels into intensity classes anyway).
-    """
+    """Randomly remap unique axon IDs → 1..n_groups, keeping background=0."""
     out = torch.zeros_like(label)
     unique = label.unique()
-    unique = unique[unique > 0]          # exclude background
+    unique = unique[unique > 0]
     if unique.numel() == 0:
         return out
-    # Assign each axon randomly to one of n_groups groups
     groups = torch.randint(1, n_groups + 1, (unique.numel(),),
                            device=label.device, dtype=label.dtype)
-    # Vectorised lookup via scatter on a table
     max_id = int(unique.max().item()) + 1
     lut = torch.zeros(max_id, device=label.device, dtype=label.dtype)
     lut[unique] = groups
     out = lut[label.clamp(0, max_id - 1)]
     return out
+
+
+# ---------------------------------------------------------------------------
+# Two-GPU prefetcher: synthesis on GPU 0, training on GPU 1
+# ---------------------------------------------------------------------------
+
+class SynthPrefetcher:
+    """Background-thread prefetcher: runs cornucopia synthesis on synth_device
+    and pushes ready (image, seg) tensors on train_device into a queue.
+
+    The main training loop simply iterates over this like a dataloader.
+    Because synthesis and training run on different GPUs, they overlap.
+    """
+
+    def __init__(self, dataloader, synth, synth_device, train_device,
+                 n_label_groups=8, queue_depth=4, timeout=30):
+        self.dataloader = dataloader
+        self.synth = synth
+        self.synth_device = synth_device
+        self.train_device = train_device
+        self.n_label_groups = n_label_groups
+        self.queue_depth = queue_depth
+        self.timeout = timeout
+
+    def _produce(self, q, stop_event):
+        """Worker thread: synthesize batches and enqueue them."""
+        for batch in self.dataloader:
+            if stop_event.is_set():
+                break
+            label = batch['label'].to(self.synth_device, non_blocking=True)
+            prob  = batch['prob'].to(self.synth_device, non_blocking=True)
+            label_g = collapse_labels(label, n_groups=self.n_label_groups)
+            try:
+                with torch.no_grad():
+                    image, seg = self.synth(label_g, prob)
+                # Move to training GPU
+                image = image.to(self.train_device, non_blocking=True)
+                seg   = seg.to(self.train_device, non_blocking=True)
+                q.put((image, seg))
+            except Exception as e:
+                # Synthesis failure (timeout, bad input, etc.) — skip batch
+                logging.getLogger(__name__).warning(f'Synth failed, skipping batch: {e}')
+                continue
+        q.put(None)  # sentinel: epoch done
+
+    def __iter__(self):
+        q = queue.Queue(maxsize=self.queue_depth)
+        stop_event = threading.Event()
+        t = threading.Thread(target=self._produce, args=(q, stop_event), daemon=True)
+        t.start()
+        while True:
+            item = q.get()
+            if item is None:
+                break
+            yield item
+        t.join(timeout=5)
+
+    def __len__(self):
+        return len(self.dataloader)
 
 
 # ---------------------------------------------------------------------------
@@ -147,18 +197,19 @@ def main():
     ckpt_dir.mkdir(parents=True, exist_ok=True)
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    log.info(f'Device: {device}')
+    log.info(f'Train device: {device}')
     # Fixed input shape → cuDNN benchmarks fastest conv algorithm once then reuses it
     torch.backends.cudnn.benchmark = True
     monai.config.print_config()
 
     # --- DataLoaders ---
-    # Workers do subset selection only (fast RAM ops); synthesis runs on GPU below.
+    # Workers run cornucopia CPU synthesis in parallel (generate_images=True).
     loader_kwargs = dict(
-        generate_images=False,          # workers return label/prob, not image/seg
+        generate_images=(not args.no_images),
         num_samples_per_volume=args.samples_per_vol,
         val_fraction=args.val_fraction,
         max_volumes=args.max_volumes,
+        n_label_groups=args.n_label_groups,
         fibers_lower_range=(args.fibers_lower_lo, args.fibers_lower_hi),
         background_upper_range=(args.bg_upper_lo, args.bg_upper_hi),
         background=args.background,
@@ -178,31 +229,23 @@ def main():
         **loader_kwargs,
     )
 
-    # --- GPU synthesizer (cornucopia transforms are device-agnostic: run on
-    #     whatever device the input tensors live on — no .to(device) needed) ---
-    synth_kwargs = dict(
-        background=args.background,
-        fibers_lower_range=(args.fibers_lower_lo, args.fibers_lower_hi),
-        background_upper_range=(args.bg_upper_lo, args.bg_upper_hi),
-    )
-    if not args.no_images:
-        synth = ControlledContrastAxonImage(**synth_kwargs)
-        log.info('GPU synthesizer ready (ControlledContrastAxonImage)')
-    else:
-        synth = None
-        log.info('Synthesis disabled (--no_images): using prob tensor as seg directly')
-
+    log.info(f'Workers handle CPU synthesis (generate_images={not args.no_images})')
     log.info(f'Train batches/epoch: {len(train_loader)}')
     log.info(f'Val batches:         {len(val_loader)}')
 
-    # --- Additional geometric augmentation applied post-batch ---
-    # Our DataLoader already does heavy synthesis augmentation (cornucopia).
-    # These are cheap free augmentations applied to the batch tensors directly.
+    # --- Post-batch augmentation ---
+    # Geometric: applied to both image and seg.
+    # Intensity: applied to image only — closes the domain gap between
+    #            synthetic contrast and real microscopy.
     geo_aug = Compose([
         RandFlipd(keys=['image', 'seg'], prob=0.5, spatial_axis=0),
         RandFlipd(keys=['image', 'seg'], prob=0.5, spatial_axis=1),
         RandFlipd(keys=['image', 'seg'], prob=0.5, spatial_axis=2),
         RandRotate90d(keys=['image', 'seg'], prob=0.5, spatial_axes=(0, 2)),
+        # Intensity augmentation (image only)
+        RandScaleIntensityd(keys=['image'], factors=0.1, prob=1.0),
+        RandShiftIntensityd(keys=['image'], offsets=0.1, prob=1.0),
+        RandGaussianNoised(keys=['image'], prob=0.15, mean=0.0, std=0.05),
     ])
 
     # --- Model ---
@@ -214,16 +257,26 @@ def main():
         strides=(2, 2, 2, 2),
         num_res_units=2,
         norm=Norm.BATCH,
+        dropout=0.1,
     ).to(device)
     log.info(f'Model params: {sum(p.numel() for p in model.parameters()):,}')
 
-    # --- Loss, optimizer ---
+    # --- Loss, optimizer, scheduler ---
     # DiceCELoss: Dice stabilises spatial overlap, CE stabilises class balance early in training.
     loss_fn   = DiceCELoss(sigmoid=True, lambda_dice=0.5, lambda_ce=0.5)
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-        optimizer, T_max=args.epochs, eta_min=args.lr / 100
-    )
+    # AdamW: decoupled weight decay regularises all weights equally regardless
+    # of gradient magnitude (Loshchilov & Hutter 2019).
+    optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-2)
+    # 5-epoch linear warmup → cosine decay: lets batch-norm stats and Adam moment
+    # estimates warm up before full learning rate kicks in.
+    warmup_epochs = 5
+    warmup_sched = torch.optim.lr_scheduler.LinearLR(
+        optimizer, start_factor=1e-3, total_iters=warmup_epochs)
+    cosine_sched = torch.optim.lr_scheduler.CosineAnnealingLR(
+        optimizer, T_max=args.epochs - warmup_epochs, eta_min=args.lr / 100)
+    scheduler = torch.optim.lr_scheduler.SequentialLR(
+        optimizer, schedulers=[warmup_sched, cosine_sched],
+        milestones=[warmup_epochs])
 
     # --- Post-processing for validation ---
     post_pred  = Compose([Activations(sigmoid=True), AsDiscrete(threshold=0.5)])
@@ -288,20 +341,16 @@ def main():
         epoch_loss = 0.0
         step = 0
         t0 = time.time()
+        t_batch_end = time.time()  # for measuring data-wait time
+        _total_wait = 0.0
+        _total_train = 0.0
 
         for batch in train_loader:
-            label = batch['label'].to(device)
-            prob  = batch['prob'].to(device)
+            t_wait = time.time() - t_batch_end  # time waiting for DataLoader
+            t_step = time.time()
 
-            # Collapse 3000+ axon IDs → n_groups before cornucopia morphological ops
-            label_g = collapse_labels(label, n_groups=args.n_label_groups)
-
-            # GPU synthesis — no gradients needed through cornucopia ops
-            with torch.no_grad():
-                if synth is not None:
-                    image, seg = synth(label_g, prob)
-                else:
-                    image, seg = prob.float(), prob.float()
+            image = batch['image'].to(device)
+            seg   = batch['seg'].to(device)
 
             # Geometric augmentation per-sample then re-stack
             samples = [geo_aug(s) for s in decollate_batch({'image': image, 'seg': seg})]
@@ -318,6 +367,15 @@ def main():
 
             epoch_loss += loss.item()
             step += 1
+            t_train = time.time() - t_step
+            _total_wait += t_wait
+            _total_train += t_train
+            t_batch_end = time.time()
+
+            # Log every batch during epoch 1, then every 50th batch
+            if epoch == start_epoch or step % 50 == 0 or step <= 5:
+                log.info(f'  batch {step:3d}/{len(train_loader)} | '
+                         f'wait={t_wait:.2f}s train={t_train:.3f}s loss={loss.item():.4f}')
 
         scheduler.step()
 
@@ -326,7 +384,9 @@ def main():
         lr_now  = scheduler.get_last_lr()[0]
 
         log.info(f'Epoch {epoch:04d}/{args.epochs} | loss={epoch_loss:.4f} | '
-                 f'lr={lr_now:.2e} | {elapsed:.0f}s')
+                 f'lr={lr_now:.2e} | {elapsed:.0f}s | '
+                 f'data_wait={_total_wait:.0f}s train={_total_train:.1f}s '
+                 f'overhead={elapsed - _total_wait - _total_train:.1f}s')
         writer.add_scalar('train/loss',   epoch_loss, epoch)
         writer.add_scalar('train/lr',     lr_now,     epoch)
 
@@ -338,19 +398,13 @@ def main():
             log_images_this_epoch = True   # capture first val batch for TensorBoard
             with torch.no_grad():
                 for val_batch in val_loader:
-                    val_label = val_batch['label'].to(device)
-                    val_prob  = val_batch['prob'].to(device)
-
-                    val_label_g = collapse_labels(val_label, n_groups=args.n_label_groups)
-
-                    if synth is not None:
-                        val_image, val_seg = synth(val_label_g, val_prob)
-                    else:
-                        val_image, val_seg = val_prob.float(), val_prob.float()
+                    val_image = val_batch['image'].to(device)
+                    val_seg   = val_batch['seg'].to(device)
 
                     with torch.amp.autocast(device_type=device.type, enabled=use_amp):
                         val_pred = sliding_window_inference(
-                            val_image, roi_size, args.sw_batch_size, model
+                            val_image, roi_size, args.sw_batch_size, model,
+                            overlap=0.5,
                         )
                     val_pred_post  = [post_pred(p)  for p in decollate_batch(val_pred)]
                     val_label_post = [post_label(l) for l in decollate_batch(val_seg)]

@@ -22,6 +22,8 @@ Typical usage
     )
 """
 import random as pyrandom
+import logging as _logging
+import time as _time
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Tuple, Union
 
@@ -29,6 +31,8 @@ import nibabel as nib
 import numpy as np
 import torch
 from torch.utils.data import Dataset
+
+_log = _logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Worker-local synthesizer
@@ -208,6 +212,26 @@ class DensityDistribution:
         return field, config
 
 
+def collapse_labels(label: torch.Tensor, n_groups: int = 8) -> torch.Tensor:
+    """Randomly remap unique axon IDs → 1..n_groups, keeping background=0.
+
+    Cornucopia iterates over every unique label ID for morphological ops —
+    collapsing 3000+ axon IDs to n_groups gives a massive speedup.
+    """
+    out = torch.zeros_like(label)
+    unique = label.unique()
+    unique = unique[unique > 0]
+    if unique.numel() == 0:
+        return out
+    groups = torch.randint(1, n_groups + 1, (unique.numel(),),
+                           device=label.device, dtype=label.dtype)
+    max_id = int(unique.max().item()) + 1
+    lut = torch.zeros(max_id, device=label.device, dtype=label.dtype)
+    lut[unique] = groups
+    out = lut[label.clamp(0, max_id - 1)]
+    return out
+
+
 class AxonSubsetDataset(Dataset):
     """On-the-fly axon subset dataset for 3-D UNet training.
 
@@ -235,8 +259,13 @@ class AxonSubsetDataset(Dataset):
     transform : callable, optional
         Additional transform applied to the output dict after synthesis.
     num_samples_per_volume : int
-        Number of random subsets drawn from each source volume per epoch.    max_volumes : int, optional
-        Cap the number of label volumes loaded. ``None`` means use all.    fibers_lower_range : (float, float)
+        Number of random subsets drawn from each source volume per epoch.
+    max_volumes : int, optional
+        Cap the number of label volumes loaded. ``None`` means use all.
+    n_label_groups : int
+        Collapse unique axon IDs to N groups before synthesis
+        (speeds up cornucopia morphological ops).
+    fibers_lower_range : (float, float)
         Uniform range for the axon intensity floor (passed to synthesizer).
     background_upper_range : (float, float)
         Uniform range for the background intensity ceiling.
@@ -253,6 +282,7 @@ class AxonSubsetDataset(Dataset):
         transform: Optional[Callable] = None,
         num_samples_per_volume: int = 100,
         max_volumes: Optional[int] = None,
+        n_label_groups: int = 8,
         fibers_lower_range: Tuple[float, float] = (0.3, 0.5),
         background_upper_range: Tuple[float, float] = (0.2, 0.4),
         background: float = 0.5,
@@ -265,6 +295,7 @@ class AxonSubsetDataset(Dataset):
         self.generate_images        = generate_images
         self.transform              = transform
         self.num_samples_per_volume = num_samples_per_volume
+        self.n_label_groups         = n_label_groups
 
         # Synthesizer kwargs — model is created lazily per worker process.
         self._synth_kwargs = dict(
@@ -326,10 +357,15 @@ class AxonSubsetDataset(Dataset):
             return labels.copy(), prob.copy(), dict(n_total=0, n_kept=0, fraction=0.0)
 
         if keep_prob_field is not None:
-            # Per-axon probability = mean field value over axon voxels
-            per_axon_p = np.array([
-                keep_prob_field[labels == aid].mean() for aid in unique_axons
-            ])
+            # Per-axon probability = mean field value over axon voxels.
+            # Vectorized via bincount: 2 passes over the volume instead of
+            # one pass per axon (~3000+ passes → catastrophically slow).
+            label_flat = labels.ravel()
+            field_flat = keep_prob_field.ravel().astype(np.float64)
+            max_label  = int(labels.max()) + 1
+            sums   = np.bincount(label_flat, weights=field_flat, minlength=max_label)
+            counts = np.bincount(label_flat, minlength=max_label)
+            per_axon_p = sums[unique_axons] / np.maximum(counts[unique_axons], 1)
             keep_mask = np.random.random(n_total) < per_axon_p
         else:
             frac      = pyrandom.uniform(*self.subset_fraction)
@@ -356,6 +392,7 @@ class AxonSubsetDataset(Dataset):
         )
 
     def __getitem__(self, idx: int) -> dict:
+        _t_total = _time.monotonic()
         vol_idx      = idx // self.num_samples_per_volume
         labels, prob = self._volumes[vol_idx]          # from in-memory cache
 
@@ -364,6 +401,7 @@ class AxonSubsetDataset(Dataset):
             np.random.seed(idx % (2 ** 31))
             pyrandom.seed(idx)
 
+        _t0 = _time.monotonic()
         keep_prob_field = density_config = None
         if self.apply_density_curve:
             keep_prob_field, density_config = DensityDistribution.random(labels.shape)
@@ -371,6 +409,7 @@ class AxonSubsetDataset(Dataset):
         subset_labels, subset_prob, subset_info = self._apply_subset(
             labels, prob, keep_prob_field
         )
+        _t_subset = _time.monotonic() - _t0
 
         # (1, D, H, W)  —  channel-first, MONAI convention
         label_t = torch.from_numpy(subset_labels).unsqueeze(0).long()
@@ -383,10 +422,76 @@ class AxonSubsetDataset(Dataset):
         )
 
         if self.generate_images:
+            # -- Filter C: ensure subset has enough foreground mass for
+            #    cornucopia erosion/shallow ops.  If too sparse, re-draw
+            #    (up to 5×) from the same volume with a fresh density field.
+            _MIN_FG_VOXELS = 200  # 128³ vol has 2M voxels; 200 is ~0.01%
+            _fg_redraws = 0
+            for _redraw in range(5):
+                fg_count = int((label_t > 0).sum())
+                if fg_count >= _MIN_FG_VOXELS:
+                    break
+                _fg_redraws += 1
+                keep_prob_field, _ = DensityDistribution.random(labels.shape)
+                s_labels, s_prob, subset_info = self._apply_subset(
+                    labels, prob, keep_prob_field)
+                label_t = torch.from_numpy(s_labels).unsqueeze(0).long()
+                prob_t  = torch.from_numpy(s_prob).unsqueeze(0).float()
+            fg_count = int((label_t > 0).sum())
+
+            # Collapse 3000+ axon IDs → n_groups before cornucopia morphological
+            # ops — gives ~(N_axons/n_groups)x speedup in synthesis.
+            _t1 = _time.monotonic()
+            label_g = collapse_labels(label_t, n_groups=self.n_label_groups)
+            _t_collapse = _time.monotonic() - _t1
+
             # Worker-local CPU synthesizer (fix #2)
             synth = _get_or_create_synth(self._synth_kwargs)
-            with torch.no_grad():
-                image, out_prob = synth(label_t, prob_t)
+
+            # Cornucopia loops are capped (fix B) so synthesis always
+            # completes.  No timeout needed — just run and catch any
+            # unexpected exceptions.
+            image = out_prob = None
+            _t2 = _time.monotonic()
+            try:
+                with torch.no_grad():
+                    image, out_prob = synth(label_g, prob_t)
+            except Exception as exc:
+                _log.warning(f'idx={idx} vol={vol_idx}: synth error: {exc}')
+
+            _used_alt_vol = False
+            _used_raw_fallback = False
+            if image is None:
+                # Primary synthesis failed — try a different random volume.
+                _used_alt_vol = True
+                alt_idx = np.random.randint(0, len(self._volumes))
+                alt_labels, alt_prob = self._volumes[alt_idx]
+                alt_s, alt_p, _ = self._apply_subset(alt_labels, alt_prob, None)
+                alt_lt = torch.from_numpy(alt_s).unsqueeze(0).long()
+                alt_pt = torch.from_numpy(alt_p).unsqueeze(0).float()
+                alt_lg = collapse_labels(alt_lt, n_groups=self.n_label_groups)
+                try:
+                    with torch.no_grad():
+                        image, out_prob = synth(alt_lg, alt_pt)
+                except Exception:
+                    pass
+                if image is None:
+                    _used_raw_fallback = True
+                    _log.warning(
+                        f'idx={idx}: ALL synthesis failed (vol={vol_idx}, '
+                        f'alt_vol={alt_idx}), returning raw prob')
+                    image, out_prob = prob_t.float(), prob_t.float()
+
+            _t_synth = _time.monotonic() - _t2
+            _t_total_elapsed = _time.monotonic() - _t_total
+
+            # Log warnings only — per-sample INFO stripped for production
+            if _used_raw_fallback or _used_alt_vol:
+                _log.warning(
+                    f'[sample] idx={idx} vol={vol_idx} | '
+                    f'synth={_t_synth:.1f}s | alt_vol={_used_alt_vol} '
+                    f'raw_fallback={_used_raw_fallback}')
+
             # 'image': network input  |  'seg': segmentation target
             result['image'] = image      # (1, D, H, W)
             result['seg']   = out_prob   # (1, D, H, W)

@@ -19,11 +19,15 @@ broken convnd for iso kernels, so we pin to 0.3.0.
 
 import math as pymath
 import random as pyrandom
+import logging
+import time as _time
 
 import torch
 import cornucopia as cc
 
 from synthspline.imagezoo import AutoBatchTransform
+
+_log = logging.getLogger(__name__)
 
 
 def _minmax_rescale(x: torch.Tensor, vmin: float, vmax: float) -> torch.Tensor:
@@ -138,14 +142,46 @@ class ControlledContrastAxonImage(AutoBatchTransform):
             lab, prob = self.flip(lab, prob)
 
             # ---- perturb axon label map ----
+            # Cap retry loops to avoid infinite hangs on thin/small axons
+            # whose voxels are completely annihilated by erosion.  If all
+            # attempts fail, skip the step and use the pre-op tensor.
+            _t0 = _time.monotonic()
             v = lab.clone()
+            n_fg_in = int(v.any())
+            _erode_retries = 0
+            _erode_fallback = False
             v0, v = v, self.erode_axon(v)
-            while not v.any():
+            for _i in range(10):
+                if v.any():
+                    break
+                _erode_retries += 1
                 v = self.erode_axon(v0)
+            else:
+                _erode_fallback = True
+                v = v0  # erosion impossible — use un-eroded labels
+            _t_erode = _time.monotonic() - _t0
+
+            _shallow_retries = 0
+            _shallow_fallback = False
+            _t1 = _time.monotonic()
             v0, v = v, self.shallow(v)
-            while not v.any():
+            for _i in range(10):
+                if v.any():
+                    break
+                _shallow_retries += 1
                 v = self.shallow(v0)
+            else:
+                _shallow_fallback = True
+                v = v0  # shallow impossible — use pre-shallow labels
+            _t_shallow = _time.monotonic() - _t1
             del v0
+
+            if _erode_retries > 0 or _shallow_retries > 0:
+                _log.info(
+                    f'[synth] erode: {_erode_retries} retries, fallback={_erode_fallback} '
+                    f'({_t_erode:.2f}s) | shallow: {_shallow_retries} retries, '
+                    f'fallback={_shallow_fallback} ({_t_shallow:.2f}s) | '
+                    f'fg_voxels_in={n_fg_in}')
             v = self.noisylabel(v)
 
             # group axons into shared-intensity classes

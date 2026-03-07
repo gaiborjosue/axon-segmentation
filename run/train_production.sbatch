@@ -2,8 +2,8 @@
 #SBATCH --job-name=train_unet3d
 #SBATCH --partition=mit_preemptable
 #SBATCH --gres=gpu:1
-#SBATCH --cpus-per-task=12
-#SBATCH --mem=64G
+#SBATCH --cpus-per-task=48
+#SBATCH --mem=256G
 #SBATCH --time=2-00:00:00
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=edward.gaibor001@umb.edu
@@ -11,7 +11,7 @@
 #SBATCH --error=/home/egaibor/orcd/scratch/experiment/logs/train_unet3d_%j.err
 
 # ==============================================================================
-# Production training run — 400 label volumes, 100 epochs
+# Production training run — 400 label volumes, 200 epochs, 2 samples/vol
 #
 # Label dir:  /scratch/experiment/dense_labels/train/  (1199 vols available)
 # --max_volumes 400 → 320 train + 80 val
@@ -47,13 +47,13 @@ fi
 python train.py \
     --label_dir       "${LABEL_DIR}" \
     --output_dir      "${OUTPUT_DIR}" \
-    --epochs          100 \
+    --epochs          200 \
     --batch_size      2 \
     --lr              1e-4 \
-    --num_workers     10 \
+    --num_workers     44 \
     --val_fraction    0.2 \
-    --val_interval    5 \
-    --samples_per_vol 30  \
+    --val_interval    2 \
+    --samples_per_vol 2  \
     --max_volumes     400 \
     --roi_size        128 \
     --sw_batch_size   4 \
