@@ -1,9 +1,6 @@
 """
 Run axon segmentation on the HiP-CT patch.
 
-Loads a .npy uint16 volume, normalises to [0, 1], runs sliding-window
-inference with the trained 3D UNet, and saves predictions as NIfTI.
-
 Usage
 -----
     python infer_hipct.py \
@@ -12,12 +9,6 @@ Usage
         --output_dir /scratch/experiment/hipct/inference_out \
         --voxel_size 0.857
 
-Outputs
--------
-    <output_dir>/
-        hipct_input.nii.gz        — normalised input volume
-        hipct_pred.nii.gz         — binary segmentation
-        hipct_pred_prob.nii.gz    — sigmoid probability map
 """
 
 import argparse
@@ -125,9 +116,7 @@ def main():
     print(f"  Tensor: {tensor.shape}, range [{tensor.min():.3f}, {tensor.max():.3f}]")
 
     # --- Load model ---
-    print(f"Loading checkpoint {args.checkpoint} ...")
     ckpt = torch.load(args.checkpoint, map_location=device)
-    print(f"  Epoch {ckpt['epoch']}, val Dice {ckpt['val_dice']:.4f}")
 
     model = UNet(
         spatial_dims=3,
@@ -139,6 +128,7 @@ def main():
         norm=Norm.BATCH,
         dropout=0.1,
     ).to(device)
+    
     model.load_state_dict(ckpt["model_state_dict"])
     model.eval()
     print(f"  Model loaded: {sum(p.numel() for p in model.parameters()):,} params")
