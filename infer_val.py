@@ -74,7 +74,7 @@ def main():
     ckpt = torch.load(args.checkpoint, map_location=device)
     print(f"Loaded checkpoint from epoch {ckpt['epoch']}, val Dice={ckpt['val_dice']:.4f}")
 
-    # Rebuild model with same architecture
+    # Rebuild model with same architecture as train.py
     model = UNet(
         spatial_dims=3,
         in_channels=1,
@@ -83,6 +83,7 @@ def main():
         strides=(2, 2, 2, 2),
         num_res_units=2,
         norm=Norm.BATCH,
+        dropout=0.1,
     ).to(device)
     model.load_state_dict(ckpt['model_state_dict'])
     model.eval()
