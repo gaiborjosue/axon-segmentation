@@ -2,7 +2,7 @@
 #SBATCH --job-name=train_unet3d
 #SBATCH --partition=mit_preemptable
 #SBATCH --gres=gpu:1
-#SBATCH --cpus-per-task=48
+#SBATCH --cpus-per-task=60
 #SBATCH --mem=256G
 #SBATCH --time=2-00:00:00
 #SBATCH --mail-type=END,FAIL
@@ -51,7 +51,7 @@ python train.py \
     --epochs          200 \
     --batch_size      2 \
     --lr              1e-4 \
-    --num_workers     44 \
+    --num_workers     52 \
     --val_fraction    0.2 \
     --val_interval    1 \
     --samples_per_vol 2  \
