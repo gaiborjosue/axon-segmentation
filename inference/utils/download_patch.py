@@ -12,7 +12,7 @@ Usage
         --zarr_id   b8418d95-409f-4b87-89be-93a9ba240f5f \
         --level     0 \
         --bbox      1461,210,3295,3323,1180,4889 \
-        --output    /scratch/experiment/hipct/patch_I74_IC_zoom01.npy
+        --output    /scratch/experiment/hipct/patch_I74_IC_zoom01.raw
 
 The bounding box is specified as x0,y0,z0,x1,y1,z1 (voxel indices at the
 chosen resolution level, exclusive end).
@@ -25,6 +25,7 @@ import os
 import sys
 from pathlib import Path
 
+import blosc
 import numpy as np
 import requests
 
@@ -111,8 +112,6 @@ def main():
     print(f"Allocated memmap: {tmp_path}  "
           f"({patch.nbytes / 1e9:.1f} GB on disk)")
 
-    # Blosc decompressor (matches the zarr compressor)
-    import blosc
     fill_value = zarray.get("fill_value", 0)
     order = zarray.get("order", "C")
 
@@ -173,11 +172,9 @@ def main():
     patch.flush()
     del patch  # close memmap
 
-    # Save shape/dtype metadata alongside the raw file
-    import json as _json
     meta = {"shape": list(patch_shape), "dtype": str(dtype)}
     meta_path = Path(str(output_path) + ".json")
-    meta_path.write_text(_json.dumps(meta))
+    meta_path.write_text(json.dumps(meta))
 
     tmp_path.rename(output_path)
     size_mb = output_path.stat().st_size / 1e6

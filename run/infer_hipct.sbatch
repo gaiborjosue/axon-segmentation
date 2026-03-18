@@ -20,7 +20,7 @@
 #
 # Model:  3D UNet trained on synthetic axon data (best Dice 0.8828)
 #
-# Pre-requisite: Run download_patch.py on login node first.
+#
 # ==============================================================================
 
 echo "=== HiP-CT Axon Segmentation Inference ==="

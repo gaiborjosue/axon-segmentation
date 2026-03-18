@@ -24,16 +24,13 @@ import nibabel as nib
 import numpy as np
 
 
-CROP = 128
-
-
 def parse_args():
     p = argparse.ArgumentParser()
     p.add_argument("--inference_dir", required=True)
     p.add_argument("--patch_raw",     required=True,
                    help="Raw memmap file (patch_*.raw); .json sidecar must exist alongside it")
     p.add_argument("--n_crops",  type=int, default=5)
-    p.add_argument("--crop_size",type=int, default=CROP)
+    p.add_argument("--crop_size",type=int, default=128)
     p.add_argument("--seed",     type=int, default=42)
     return p.parse_args()
 
@@ -65,9 +62,6 @@ def main():
     print("Loading prediction ...")
     pred_nii = nib.load(str(inf_dir / "hipct_pred.nii.gz"))
     pred = np.asarray(pred_nii.dataobj).astype(np.uint8)
-
-    # Load prob map fully (float32, ~11.5 GB) — skip if too large, use pred only
-    prob_path = inf_dir / "hipct_pred_prob.nii.gz"
 
     # Input via memmap (uint16, seekable)
     inp = np.memmap(str(raw_path), dtype=meta["dtype"], mode="r", shape=shape)

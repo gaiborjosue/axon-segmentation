@@ -1,5 +1,5 @@
 """
-Run axon segmentation on a downloaded HiP-CT patch.
+Run axon segmentation on the HiP-CT patch.
 
 Loads a .npy uint16 volume, normalises to [0, 1], runs sliding-window
 inference with the trained 3D UNet, and saves predictions as NIfTI.
@@ -16,11 +16,12 @@ Outputs
 -------
     <output_dir>/
         hipct_input.nii.gz        — normalised input volume
-        hipct_pred.nii.gz         — binary segmentation (threshold 0.5)
+        hipct_pred.nii.gz         — binary segmentation
         hipct_pred_prob.nii.gz    — sigmoid probability map
 """
 
 import argparse
+import json
 from pathlib import Path
 
 import nibabel as nib
@@ -72,8 +73,7 @@ def main():
         patch = np.load(args.input)
     else:
         # Raw memmap with sidecar .json metadata
-        import json as _json
-        meta = _json.loads(Path(str(input_path) + ".json").read_text())
+        meta = json.loads(Path(str(input_path) + ".json").read_text())
         patch = np.memmap(str(input_path), dtype=meta["dtype"],
                           mode="r", shape=tuple(meta["shape"]))
     print(f"  Shape: {patch.shape}, dtype: {patch.dtype}")
@@ -91,8 +91,8 @@ def main():
         patch_f = (patch_f - p_lo) / (p_hi - p_lo + 1e-8)
 
     elif args.norm_mode == "mean_shift":
-        # Shift mean to 0.2 (background level in training distribution).
-        # Scale by training std estimate so axon-bright voxels land near 0.5-1.0.
+        # Shift mean to 0.2 (background level in training distribution)
+        # so the real data occupies the same intensity range the model was trained on.
         p_lo, p_hi = np.percentile(patch_f, [0.5, 99.5])
         patch_f = np.clip(patch_f, p_lo, p_hi)
         patch_f = (patch_f - p_lo) / (p_hi - p_lo + 1e-8)  # → [0, 1]
@@ -121,7 +121,6 @@ def main():
 
     print(f"  Normalised range: [{patch_f.min():.3f}, {patch_f.max():.3f}]  mean={patch_f.mean():.3f}")
 
-    # Prepare tensor: (1, 1, X, Y, Z)
     tensor = torch.from_numpy(patch_f).unsqueeze(0).unsqueeze(0).to(device)
     print(f"  Tensor: {tensor.shape}, range [{tensor.min():.3f}, {tensor.max():.3f}]")
 
