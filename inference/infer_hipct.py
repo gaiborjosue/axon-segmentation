@@ -166,15 +166,13 @@ def main():
     pred_np = (prob_np >= args.threshold).astype(np.uint8)
 
     save_nii(patch_f, output_dir / "hipct_input.nii.gz", args.voxel_size)
+
     save_nii(prob_np, output_dir / "hipct_pred_prob.nii.gz", args.voxel_size)
+
     save_nii(pred_np, output_dir / "hipct_pred.nii.gz", args.voxel_size)
 
-    n_pos = pred_np.sum()
-    vol_frac = n_pos / pred_np.size * 100
     print(f"\nDone! Saved to {output_dir}/")
-    print(f"  Positive voxels: {n_pos:,} / {pred_np.size:,} ({vol_frac:.1f}%)")
-    print(f"\nView in napari:")
-    print(f"  napari {output_dir}/hipct_input.nii.gz {output_dir}/hipct_pred.nii.gz")
+    print(f"{output_dir}/hipct_input.nii.gz {output_dir}/hipct_pred.nii.gz")
 
 
 if __name__ == "__main__":
