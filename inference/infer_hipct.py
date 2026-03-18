@@ -33,7 +33,7 @@ def parse_args():
     p.add_argument("--roi_size", type=int, default=128, help="Sliding window ROI size")
     p.add_argument("--sw_batch_size", type=int, default=4, help="Sliding window batch size")
     p.add_argument("--overlap", type=float, default=0.5, help="Sliding window overlap")
-    p.add_argument("--threshold", type=float, default=0.8, help="Binarisation threshold")
+    p.add_argument("--threshold", type=float, default=0.5, help="Binarisation threshold")
     p.add_argument("--norm_mode", default="percentile",
                    choices=["percentile", "mean_shift", "clahe"],
                    help="Intensity normalisation strategy:\n"
@@ -128,7 +128,7 @@ def main():
         norm=Norm.BATCH,
         dropout=0.1,
     ).to(device)
-    
+
     model.load_state_dict(ckpt["model_state_dict"])
     model.eval()
     print(f"  Model loaded: {sum(p.numel() for p in model.parameters()):,} params")
