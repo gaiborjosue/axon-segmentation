@@ -2,7 +2,7 @@
 #SBATCH --job-name=train_unet3d
 #SBATCH --partition=mit_preemptable
 #SBATCH --gres=gpu:1
-#SBATCH --cpus-per-task=60
+#SBATCH --cpus-per-task=50
 #SBATCH --mem=256G
 #SBATCH --time=2-00:00:00
 #SBATCH --mail-type=END,FAIL
@@ -11,11 +11,14 @@
 #SBATCH --error=/home/egaibor/orcd/scratch/experiment/logs/train_unet3d_%j.err
 
 # ==============================================================================
-# Production training run — 400 label volumes, 200 epochs, 2 samples/vol
+# Production training run — 400 label volumes, 500 epochs, 2 samples/vol
 # Cached training: rebuild synthetic train cache every 3 epochs; fixed cached val every epoch
 #
-# Label dir:  /scratch/experiment/dense_labels/train/  (1199 vols available)
+# Label dir:  /scratch/experiment/dense_labels_vl/train/  (0.8 µm voxel)
 # --max_volumes 400 → 320 train + 80 val
+# Checkpoints:
+#   best_model_ep200.pt  — best Dice up to epoch 200 (compare with previous 0.5 µm run)
+#   best_model.pt        — best Dice over full 500 epochs
 # Partition:  mit_preemptable (2-day limit, preemption-safe via SIGTERM checkpoint)
 # Resume:     sbatch train_production.sbatch  (--resume auto-detects latest ckpt)
 # ==============================================================================
@@ -28,8 +31,8 @@ module load StdEnv gcc/12.2.0 intel/2024.2.1 miniforge/24.3.0-0 cuda/12.4.0
 source activate synthsplinegpu
 
 PROJECT_DIR="/home/egaibor/orcd/pool/projects/axon-segmentation/experiment"
-LABEL_DIR="/home/egaibor/orcd/scratch/experiment/dense_labels/train"
-OUTPUT_DIR="/home/egaibor/orcd/scratch/experiment/training_out"
+LABEL_DIR="/home/egaibor/orcd/scratch/experiment/dense_labels_vl/train"
+OUTPUT_DIR="/home/egaibor/orcd/scratch/experiment/training_out_larger_voxel"
 
 mkdir -p "${OUTPUT_DIR}" \
          "/home/egaibor/orcd/scratch/experiment/logs"
@@ -48,10 +51,10 @@ fi
 python train.py \
     --label_dir       "${LABEL_DIR}" \
     --output_dir      "${OUTPUT_DIR}" \
-    --epochs          200 \
+    --epochs          500 \
     --batch_size      2 \
     --lr              1e-4 \
-    --num_workers     52 \
+    --num_workers     48 \
     --val_fraction    0.2 \
     --val_interval    1 \
     --samples_per_vol 2  \

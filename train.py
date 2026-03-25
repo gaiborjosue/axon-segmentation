@@ -477,6 +477,20 @@ def main():
                 torch.save(_checkpoint_state(epoch), str(ckpt_path))
                 log.info(f'  Saved best checkpoint → {ckpt_path}')
 
+            # Epoch-200 milestone: two saves for a clean comparison point.
+            #   best_model_ep200.pt — best Dice seen in epochs 1–200
+            #                        (direct equivalent of the old 200-epoch run's best_model.pt)
+            #   epoch_0200.pt       — exact model state at epoch 200
+            #                        (regardless of whether it was the best)
+            if epoch == 200:
+                import shutil
+                shutil.copy2(str(ckpt_dir / 'best_model.pt'),
+                             str(ckpt_dir / 'best_model_ep200.pt'))
+                log.info(f'  Saved epoch-200 best snapshot → best_model_ep200.pt')
+                torch.save(_checkpoint_state(epoch),
+                           str(ckpt_dir / 'epoch_0200.pt'))
+                log.info(f'  Saved epoch-200 state → epoch_0200.pt')
+
         # Save periodic checkpoint every 10 epochs
         if epoch % 10 == 0:
             torch.save(_checkpoint_state(epoch), str(ckpt_dir / f'epoch_{epoch:04d}.pt'))

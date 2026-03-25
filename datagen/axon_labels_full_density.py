@@ -7,8 +7,10 @@ coherently aligned axons as seen in light-sheet microscopy.
 
 Parameters used in production:
     shape       : (128, 128, 128)
-    voxel_size  : 0.0005 mm  (0.5 μm)
-    tree_density: 10 ** Uniform(6.75, 7.25)  trees/mm³
+    voxel_size  : 0.0008 mm  (0.8 μm)  — matched to HiP-CT (0.857 μm)
+    tree_density: 10 ** Uniform(6.1, 6.6)  trees/mm³
+                  (scaled down from 6.75–7.25 at 0.5 μm to keep the same
+                  number of trees per volume: (0.5/0.8)³ ≈ 0.244× factor)
 """
 import torch
 from synthspline.cli import LabelApp
@@ -26,7 +28,7 @@ class FullDensityUnidirectionalAxon(SynthAxon):
     class defaults(SynthAxon.defaults):
         orient_variance = random.LogNormal(mean=0.1, std=0.05)
         orient_mixture  = random.RandInt(1, 1)
-        tree_density    = 10 ** 6.5   # default; override at construction time
+        tree_density    = 10 ** 6.0   # default; override at construction time
 
     def forward(self, batch=1):
         """Generate a batch of dense label volumes.
