@@ -79,11 +79,13 @@ class ControlledContrastAxonImage(AutoBatchTransform):
             background: float = 0.5,
             fibers_lower_range: tuple = (0.3, 0.5),
             background_upper_range: tuple = (0.2, 0.4),
+            hipct_structures: float = 0.0,
         ):
             super().__init__()
             self.background            = background
             self.fibers_lower_range    = fibers_lower_range
             self.background_upper_range = background_upper_range
+            self.hipct_structures      = hipct_structures
 
             # --- label perturbation ---
             self.flip = cc.RandomFlipTransform()
@@ -107,6 +109,24 @@ class ControlledContrastAxonImage(AutoBatchTransform):
             # --- background structure ---
             self.label_map   = cc.RandomSmoothLabelMap(16, 8)
             self.erode_label = cc.RandomErodeLabelTransform(radius=5, new_labels=True)
+
+            # --- HiP-CT-like background structures (cell bodies + myelin) ---
+            # Only instantiated when hipct_structures > 0 to avoid overhead.
+            if hipct_structures > 0:
+                # Scattered spherical blobs: radii 6–20 voxels @ 0.8 µm ≈ 5–16 µm
+                # (mimics cell bodies / nuclei in HiP-CT)
+                self.bg_cell_bodies = cc.randomize(cc.SmoothBernoulliDiskTransform)(
+                    shape=cc.RandInt(2, 16),
+                    prob=cc.Uniform(0, 0.003),
+                    radius=(6, 20),
+                    returns='disks',
+                )
+                # Thin shell around each blob → mimics myelin / nuclear envelope
+                self.bg_myelin = cc.RandomSmoothShallowLabelTransform(
+                    max_width=3, min_width=1, shape=8,
+                )
+                # Per-label GMM to assign intensities to cytoplasm vs myelin ring
+                self.gmm_struct = cc.RandomGaussianMixtureTransform()
 
             # --- separate GMMs for foreground / background ---
             self.gmm_fg = cc.RandomGaussianMixtureTransform(
@@ -214,6 +234,23 @@ class ControlledContrastAxonImage(AutoBatchTransform):
                 y                = y + (1 - prob) * z
                 del z
 
+            # ---- HiP-CT-like background structures (cell bodies + myelin shells) ----
+            # Toggled via hipct_structures probability.  Structures are blended
+            # exclusively into non-axon voxels via (1 - prob), so they never
+            # corrupt the segmentation target.
+            if self.hipct_structures > 0 and cc.Uniform(1)() < self.hipct_structures:
+                blob_canvas = torch.zeros_like(lab)          # int zeros, same shape/device
+                cell_mask   = self.bg_cell_bodies(blob_canvas)
+                if cell_mask.any():
+                    cell_labels = (cell_mask > 0).to(torch.int)
+                    cell_labels = self.bg_myelin(cell_labels)  # cytoplasm=1, shell=new int
+                    cell_labels = self.gmm_struct(cell_labels) # per-label Gaussian intensity
+                    struct_upper = float(cc.Uniform(self.background_upper_range[0], fibers_lower - 0.05)())
+                    cell_labels  = _minmax_rescale(cell_labels, vmin=0.0, vmax=struct_upper)
+                    y = y + (1 - prob) * cell_labels
+                    del cell_labels, cell_mask
+                del blob_canvas
+
             # ---- global imaging artifacts ----
             y = self.addbias(y)
             y = self.mulbias(y)
@@ -229,9 +266,11 @@ class ControlledContrastAxonImage(AutoBatchTransform):
         background: float = 0.5,
         fibers_lower_range: tuple = (0.3, 0.5),
         background_upper_range: tuple = (0.2, 0.4),
+        hipct_structures: float = 0.0,
     ):
         super().__init__(
             background=background,
             fibers_lower_range=fibers_lower_range,
             background_upper_range=background_upper_range,
+            hipct_structures=hipct_structures,
         )

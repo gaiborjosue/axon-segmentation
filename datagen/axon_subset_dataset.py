@@ -271,6 +271,10 @@ class AxonSubsetDataset(Dataset):
         Uniform range for the background intensity ceiling.
     background : float
         Probability of adding background structures (passed to synthesizer).
+    hipct_structures : float
+        Probability (per sample) of injecting synthetic HiP-CT-like
+        background structures (cell bodies + myelin shells).  0.0 = off
+        (default, preserves existing behaviour).
     """
 
     def __init__(
@@ -286,6 +290,7 @@ class AxonSubsetDataset(Dataset):
         fibers_lower_range: Tuple[float, float] = (0.3, 0.5),
         background_upper_range: Tuple[float, float] = (0.2, 0.4),
         background: float = 0.5,
+        hipct_structures: float = 0.0,
         split: str = 'train',
         val_fraction: float = 0.2,
     ):
@@ -302,6 +307,7 @@ class AxonSubsetDataset(Dataset):
             background=background,
             fibers_lower_range=fibers_lower_range,
             background_upper_range=background_upper_range,
+            hipct_structures=hipct_structures,
         )
 
         all_label_files: List[Path] = sorted(self.label_dir.glob('*_label.nii.gz'))

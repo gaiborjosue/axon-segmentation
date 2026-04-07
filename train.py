@@ -145,11 +145,20 @@ def parse_args():
     # Synthesis params
     p.add_argument('--no_images',        action='store_true',
                    help='Skip image synthesis (use raw label/prob tensors). For debugging only.')
-    p.add_argument('--background',       type=float, default=0.5)
-    p.add_argument('--fibers_lower_lo',  type=float, default=0.3)
-    p.add_argument('--fibers_lower_hi',  type=float, default=0.5)
-    p.add_argument('--bg_upper_lo',      type=float, default=0.2)
-    p.add_argument('--bg_upper_hi',      type=float, default=0.4)
+    p.add_argument('--background',          type=float, default=0.5)
+    p.add_argument('--fibers_lower_lo',     type=float, default=0.3)
+    p.add_argument('--fibers_lower_hi',     type=float, default=0.5)
+    p.add_argument('--bg_upper_lo',         type=float, default=0.2)
+    p.add_argument('--bg_upper_hi',         type=float, default=0.4)
+    p.add_argument('--subset_fraction_lo',  type=float, default=0.3,
+                   help='Lower bound of the axon keep-fraction range per sample (default: 0.3)')
+    p.add_argument('--subset_fraction_hi',  type=float, default=0.8,
+                   help='Upper bound of the axon keep-fraction range per sample (default: 0.8). '
+                        'Raise to 0.9 to ensure model sees densely-packed fascicles.')
+    p.add_argument('--hipct_structures', type=float, default=0.0,
+                   help='Probability (0–1) of injecting synthetic HiP-CT-like '
+                        'background structures (cell bodies + myelin) per sample. '
+                        '0 = off (default). Try 0.5 to enable for half of samples.')
     p.add_argument('--resume',           action='store_true',
                    help='Resume from latest checkpoint in output_dir/checkpoints/')
     return p.parse_args()
@@ -197,6 +206,8 @@ def main():
         fibers_lower_range=(args.fibers_lower_lo, args.fibers_lower_hi),
         background_upper_range=(args.bg_upper_lo, args.bg_upper_hi),
         background=args.background,
+        hipct_structures=args.hipct_structures,
+        subset_fraction=(args.subset_fraction_lo, args.subset_fraction_hi),
     )
     train_source_loader = create_dataloader(
         label_dir=args.label_dir,
