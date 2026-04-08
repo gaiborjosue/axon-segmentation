@@ -80,6 +80,7 @@ def main():
         print(f"  Percentile clip: [{p_lo:.1f}, {p_hi:.1f}]")
         patch_f = np.clip(patch_f, p_lo, p_hi)
         patch_f = (patch_f - p_lo) / (p_hi - p_lo + 1e-8)
+        patch_f = patch_f.astype(np.float32, copy=False)
 
     elif args.norm_mode == "mean_shift":
         # Shift mean to 0.2 (background level in training distribution)
@@ -92,6 +93,7 @@ def main():
         patch_f = patch_f - mu + 0.2
         patch_f = np.clip(patch_f, 0.0, 1.0)
         print(f"  Mean before shift: {mu:.3f}  → shifted to 0.2")
+        patch_f = patch_f.astype(np.float32, copy=False)
 
     elif args.norm_mode == "clahe":
         # Per-slice CLAHE to boost local axon/background contrast,
@@ -109,11 +111,18 @@ def main():
         patch_f = patch_f - mu + 0.2
         patch_f = np.clip(patch_f, 0.0, 1.0)
         print(f"  CLAHE done. Mean → shifted to 0.2")
+        patch_f = patch_f.astype(np.float32, copy=False)
 
     print(f"  Normalised range: [{patch_f.min():.3f}, {patch_f.max():.3f}]  mean={patch_f.mean():.3f}")
 
-    tensor = torch.from_numpy(patch_f).unsqueeze(0).unsqueeze(0).to(device)
-    print(f"  Tensor: {tensor.shape}, range [{tensor.min():.3f}, {tensor.max():.3f}]")
+    tensor = torch.from_numpy(patch_f).unsqueeze(0).unsqueeze(0).to(
+        device=device,
+        dtype=torch.float32,
+    )
+    print(
+        f"  Tensor: {tensor.shape}, dtype={tensor.dtype}, "
+        f"range [{tensor.min():.3f}, {tensor.max():.3f}]"
+    )
 
     # --- Load model ---
     ckpt = torch.load(args.checkpoint, map_location=device)
@@ -139,7 +148,8 @@ def main():
     print(f"Running sliding-window inference "
           f"(roi={args.roi_size}, overlap={args.overlap}, sw_batch={args.sw_batch_size}) ...")
 
-    with torch.no_grad(), torch.amp.autocast("cuda"):
+    autocast_enabled = device.type == "cuda"
+    with torch.no_grad(), torch.amp.autocast("cuda", enabled=autocast_enabled):
         pred_logits = sliding_window_inference(
             tensor, roi_size, args.sw_batch_size, model,
             overlap=args.overlap, mode="gaussian",
