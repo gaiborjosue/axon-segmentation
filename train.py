@@ -21,7 +21,6 @@ from torch.utils.tensorboard import SummaryWriter
 import monai
 from monai.networks.nets import UNet
 from monai.networks.layers import Norm
-from monai.losses import DiceCELoss
 from monai.metrics import DiceMetric
 from monai.inferers import sliding_window_inference
 from monai.transforms import (
@@ -38,6 +37,7 @@ from monai.data import decollate_batch
 
 sys.path.insert(0, str(Path(__file__).parent))
 from datagen import create_dataloader
+from train_extras import DiceCEClDiceLoss, RandPerlinNoised
 
 
 class CachedTensorDataset(Dataset):
@@ -120,6 +120,8 @@ def parse_args():
     p = argparse.ArgumentParser(description='Train 3D UNet on synthetic axon data')
     p.add_argument('--label_dir',   required=True,  help='Directory with *_label.nii.gz volumes')
     p.add_argument('--output_dir',  required=True,  help='Where to save checkpoints + TensorBoard logs')
+    p.add_argument('--init_checkpoint', default=None,
+                   help='Initialize model weights from a checkpoint and start a new optimization run.')
     p.add_argument('--epochs',           type=int,   default=200)
     p.add_argument('--batch_size',       type=int,   default=2)
     p.add_argument('--lr',               type=float, default=1e-4)
@@ -159,6 +161,24 @@ def parse_args():
                    help='Probability (0–1) of injecting synthetic HiP-CT-like '
                         'background structures (cell bodies + myelin) per sample. '
                         '0 = off (default). Try 0.5 to enable for half of samples.')
+    p.add_argument('--perlin_noise_prob', type=float, default=0.0,
+                   help='Probability of adding low-frequency Perlin-like noise to the image after cache loading.')
+    p.add_argument('--perlin_noise_grid_min', type=int, default=4,
+                   help='Minimum coarse grid size used for Perlin-like noise synthesis.')
+    p.add_argument('--perlin_noise_grid_max', type=int, default=16,
+                   help='Maximum coarse grid size used for Perlin-like noise synthesis.')
+    p.add_argument('--perlin_noise_amplitude_min', type=float, default=0.02,
+                   help='Minimum additive amplitude for Perlin-like noise in normalized image units.')
+    p.add_argument('--perlin_noise_amplitude_max', type=float, default=0.12,
+                   help='Maximum additive amplitude for Perlin-like noise in normalized image units.')
+    p.add_argument('--perlin_noise_octaves', type=int, default=2,
+                   help='Number of octaves used for Perlin-like noise synthesis.')
+    p.add_argument('--experimental_cldice', action='store_true',
+                   help='Blend soft-clDice into DiceCE as an experimental auxiliary loss.')
+    p.add_argument('--cldice_weight', type=float, default=0.2,
+                   help='Weight of the clDice term when --experimental_cldice is enabled.')
+    p.add_argument('--cldice_iters', type=int, default=10,
+                   help='Number of soft-skeletonization iterations used by experimental clDice.')
     p.add_argument('--resume',           action='store_true',
                    help='Resume from latest checkpoint in output_dir/checkpoints/')
     return p.parse_args()
@@ -182,6 +202,28 @@ def main():
     log = logging.getLogger(__name__)
     if args.cache_epochs < 1:
         raise ValueError(f'--cache_epochs must be >= 1, got {args.cache_epochs}')
+    if args.resume and args.init_checkpoint:
+        raise ValueError('--resume and --init_checkpoint are mutually exclusive')
+    if not 0.0 <= args.perlin_noise_prob <= 1.0:
+        raise ValueError(
+            f'--perlin_noise_prob must be in [0, 1], got {args.perlin_noise_prob}'
+        )
+    if args.perlin_noise_grid_min < 2 or args.perlin_noise_grid_max < args.perlin_noise_grid_min:
+        raise ValueError(
+            '--perlin_noise_grid_min must be >= 2 and <= --perlin_noise_grid_max'
+        )
+    if args.perlin_noise_amplitude_min < 0.0 or args.perlin_noise_amplitude_max < args.perlin_noise_amplitude_min:
+        raise ValueError(
+            '--perlin_noise_amplitude_min must be >= 0 and <= --perlin_noise_amplitude_max'
+        )
+    if args.perlin_noise_octaves < 1:
+        raise ValueError(f'--perlin_noise_octaves must be >= 1, got {args.perlin_noise_octaves}')
+    if args.experimental_cldice and not 0.0 < args.cldice_weight <= 1.0:
+        raise ValueError(
+            f'--cldice_weight must be in (0, 1] when --experimental_cldice is enabled; got {args.cldice_weight}'
+        )
+    if args.cldice_iters < 1:
+        raise ValueError(f'--cldice_iters must be >= 1, got {args.cldice_iters}')
 
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -247,7 +289,26 @@ def main():
         RandScaleIntensityd(keys=['image'], factors=0.1, prob=1.0),
         RandShiftIntensityd(keys=['image'], offsets=0.1, prob=1.0),
         RandGaussianNoised(keys=['image'], prob=0.15, mean=0.0, std=0.05),
+        RandPerlinNoised(
+            keys=['image'],
+            prob=args.perlin_noise_prob,
+            grid_min=args.perlin_noise_grid_min,
+            grid_max=args.perlin_noise_grid_max,
+            amplitude_min=args.perlin_noise_amplitude_min,
+            amplitude_max=args.perlin_noise_amplitude_max,
+            octaves=args.perlin_noise_octaves,
+        ),
     ])
+    if args.perlin_noise_prob > 0.0:
+        log.info(
+            'Perlin-like noise augmentation enabled: '
+            f'prob={args.perlin_noise_prob:.2f}, '
+            f'grid=[{args.perlin_noise_grid_min}, {args.perlin_noise_grid_max}], '
+            f'amplitude=[{args.perlin_noise_amplitude_min:.3f}, {args.perlin_noise_amplitude_max:.3f}], '
+            f'octaves={args.perlin_noise_octaves}'
+        )
+    else:
+        log.info('Perlin-like noise augmentation disabled')
 
     # --- Model ---
     model = UNet(
@@ -263,8 +324,22 @@ def main():
     log.info(f'Model params: {sum(p.numel() for p in model.parameters()):,}')
 
     # --- Loss, optimizer, scheduler ---
-    # DiceCELoss: Dice stabilises spatial overlap, CE stabilises class balance early in training.
-    loss_fn   = DiceCELoss(sigmoid=True, lambda_dice=0.5, lambda_ce=0.5)
+    # DiceCE remains the baseline; soft-clDice is an optional auxiliary term.
+    cldice_weight = args.cldice_weight if args.experimental_cldice else 0.0
+    loss_fn = DiceCEClDiceLoss(
+        cldice_weight=cldice_weight,
+        lambda_dice=0.5,
+        lambda_ce=0.5,
+        cldice_iters=args.cldice_iters,
+    )
+    if cldice_weight > 0.0:
+        log.info(
+            'Loss: '
+            f'{1.0 - cldice_weight:.2f} * DiceCE + {cldice_weight:.2f} * soft-clDice '
+            f'(experimental, iters={args.cldice_iters})'
+        )
+    else:
+        log.info('Loss: DiceCE only')
     # AdamW: decoupled weight decay regularises all weights equally regardless
     # of gradient magnitude (Loshchilov & Hutter 2019).
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-2)
@@ -304,6 +379,16 @@ def main():
         drop_last=False,
     )
     log.info(f'Validation cache ready: {len(val_cache)} samples, {len(val_loader)} batches')
+
+    if args.init_checkpoint:
+        init_ckpt_path = Path(args.init_checkpoint)
+        if not init_ckpt_path.exists():
+            raise FileNotFoundError(f'Init checkpoint not found: {init_ckpt_path}')
+        log.info(f'Initializing model weights from {init_ckpt_path}')
+        init_ckpt = torch.load(str(init_ckpt_path), map_location=device)
+        init_state = init_ckpt['model_state_dict'] if 'model_state_dict' in init_ckpt else init_ckpt
+        model.load_state_dict(init_state)
+        log.info('Model weights loaded; optimizer, scheduler, and scaler start fresh')
 
     # --- Resume from checkpoint ---
     if args.resume:
