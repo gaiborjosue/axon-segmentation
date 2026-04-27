@@ -144,7 +144,7 @@ class ControlledContrastAxonImage(AutoBatchTransform):
             )
             self.rescale  = cc.QuantileTransform()
 
-        def forward(self, lab, prob=None):
+        def forward(self, lab, prob=None, target_lab=None):
             """
             Parameters
             ----------
@@ -157,9 +157,20 @@ class ControlledContrastAxonImage(AutoBatchTransform):
             prob  : (1, *spatial) tensor[float]  (unchanged)
             """
             if isinstance(lab, (list, tuple)):
-                lab, prob = lab
+                if len(lab) == 2:
+                    lab, prob = lab
+                elif len(lab) == 3:
+                    lab, prob, target_lab = lab
+                else:
+                    raise ValueError(
+                        'Expected (lab, prob) or (lab, prob, target_lab), '
+                        f'got {len(lab)} items'
+                    )
 
-            lab, prob = self.flip(lab, prob)
+            if target_lab is None:
+                lab, prob = self.flip(lab, prob)
+            else:
+                lab, prob, target_lab = self.flip(lab, prob, target_lab)
 
             # ---- perturb axon label map ----
             # Cap retry loops to avoid infinite hangs on thin/small axons
@@ -203,6 +214,8 @@ class ControlledContrastAxonImage(AutoBatchTransform):
                     f'fallback={_shallow_fallback} ({_t_shallow:.2f}s) | '
                     f'fg_voxels_in={n_fg_in}')
             v = self.noisylabel(v)
+            if target_lab is not None:
+                target_lab = v.clone()
 
             # group axons into shared-intensity classes
             y            = torch.zeros_like(lab, dtype=torch.int)
@@ -259,7 +272,9 @@ class ControlledContrastAxonImage(AutoBatchTransform):
             y = self.noise(y)
             y = self.rescale(y)
 
-            return y, prob
+            if target_lab is None:
+                return y, prob
+            return y, prob, target_lab
 
     def __init__(
         self,

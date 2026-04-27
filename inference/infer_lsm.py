@@ -30,6 +30,12 @@ def parse_args():
     p.add_argument("--checkpoint", required=True, help="Path to best_model.pt")
     p.add_argument("--output_dir", required=True, help="Output directory for NIfTI files")
     p.add_argument(
+        "--segmentation_mode",
+        default="auto",
+        choices=["auto", "binary", "three_class_shell_interior"],
+        help="Segmentation mode. 'auto' uses the checkpoint args when available.",
+    )
+    p.add_argument(
         "--output_prefix",
         default=None,
         help="Prefix for saved NIfTI files (default: input filename stem)",
@@ -103,17 +109,48 @@ def normalize_patch(patch: np.ndarray, norm_mode: str) -> np.ndarray:
     return patch_f.astype(np.float32, copy=False)
 
 
-def build_model(device: torch.device) -> UNet:
+def resolve_segmentation_mode(requested_mode: str, checkpoint: dict) -> str:
+    if requested_mode != "auto":
+        return requested_mode
+    checkpoint_args = checkpoint.get("args") or {}
+    return checkpoint_args.get("segmentation_mode", "binary")
+
+
+def build_model(device: torch.device, segmentation_mode: str) -> UNet:
     return UNet(
         spatial_dims=3,
         in_channels=1,
-        out_channels=1,
+        out_channels=1 if segmentation_mode == "binary" else 3,
         channels=(16, 32, 64, 128, 256),
         strides=(2, 2, 2, 2),
         num_res_units=2,
         norm=Norm.BATCH,
         dropout=0.1,
     ).to(device)
+
+
+def postprocess_logits(
+    pred_logits: torch.Tensor,
+    segmentation_mode: str,
+    threshold: float,
+) -> dict[str, np.ndarray]:
+    if segmentation_mode == "binary":
+        pred_prob = torch.sigmoid(pred_logits)[0, 0].numpy()
+        pred_mask = (pred_prob >= threshold).astype(np.uint8)
+        return {
+            "pred_prob": pred_prob,
+            "pred": pred_mask,
+        }
+
+    probabilities = torch.softmax(pred_logits, dim=1)[0]
+    foreground_prob = probabilities[1:].sum(dim=0).numpy()
+    foreground_mask = (foreground_prob >= threshold).astype(np.uint8)
+    pred_class = probabilities.argmax(dim=0).to(torch.uint8).numpy()
+    return {
+        "pred_prob": foreground_prob,
+        "pred": foreground_mask,
+        "pred_class": pred_class,
+    }
 
 
 def main():
@@ -149,7 +186,10 @@ def main():
     )
 
     ckpt = torch.load(args.checkpoint, map_location=device)
-    model = build_model(device)
+    segmentation_mode = resolve_segmentation_mode(args.segmentation_mode, ckpt)
+    print(f"  Segmentation mode: {segmentation_mode}")
+
+    model = build_model(device, segmentation_mode)
     model.load_state_dict(ckpt["model_state_dict"])
     model.eval()
     print(f"  Model loaded: {sum(p.numel() for p in model.parameters()):,} params")
@@ -176,13 +216,18 @@ def main():
     del pred_logits
     torch.cuda.empty_cache()
 
-    prob_np = torch.sigmoid(pred_logits_cpu)[0, 0].numpy()
+    outputs = postprocess_logits(pred_logits_cpu, segmentation_mode, args.threshold)
     del pred_logits_cpu
-    pred_np = (prob_np >= args.threshold).astype(np.uint8)
 
     save_nii(patch_f, output_dir / f"{output_prefix}_input.nii.gz", args.voxel_size)
-    save_nii(prob_np, output_dir / f"{output_prefix}_pred_prob.nii.gz", args.voxel_size)
-    save_nii(pred_np, output_dir / f"{output_prefix}_pred.nii.gz", args.voxel_size)
+    save_nii(outputs["pred_prob"], output_dir / f"{output_prefix}_pred_prob.nii.gz", args.voxel_size)
+    save_nii(outputs["pred"], output_dir / f"{output_prefix}_pred.nii.gz", args.voxel_size)
+    if segmentation_mode == "three_class_shell_interior":
+        save_nii(
+            outputs["pred_class"],
+            output_dir / f"{output_prefix}_pred_class.nii.gz",
+            args.voxel_size,
+        )
 
     print(f"\nDone! Saved to {output_dir}/")
     print(
