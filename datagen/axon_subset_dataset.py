@@ -54,7 +54,7 @@ def _get_or_create_synth(synth_kwargs: dict):
     key = frozenset(synth_kwargs.items())
     if key not in _worker_synth:
         from datagen.axon_image_controlled_contrast import ControlledContrastAxonImage
-        _worker_synth[key] = ControlledContrastAxonImage(**synth_kwargs)
+        _worker_synth[key] = ControlledContrastAxonImage.XForm(**synth_kwargs)
     return _worker_synth[key]
 
 
