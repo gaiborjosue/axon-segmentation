@@ -26,7 +26,7 @@ set -u
 
 PROJECT_DIR="/home/egaibor/orcd/pool/projects/axon-segmentation/experiment"
 LABEL_DIR="/home/egaibor/orcd/scratch/experiment/dense_labels_vl/train"
-OUTPUT_DIR="/home/egaibor/orcd/scratch/experiment/training_out_higher_range_three_class_smoke_v5"
+OUTPUT_DIR="/home/egaibor/orcd/scratch/experiment/training_out_higher_range_three_class_smoke_v6_gpu_cache_1epoch"
 
 mkdir -p "${OUTPUT_DIR}" \
          "/home/egaibor/orcd/scratch/experiment/logs_higher_range_three_class"
@@ -38,9 +38,10 @@ python train.py \
     --label_dir            "${LABEL_DIR}" \
     --output_dir           "${OUTPUT_DIR}" \
     --segmentation_mode    three_class_shell_interior \
+    --cache_builder        gpu \
     --three_class_loss_mode nested \
     --three_class_weights  1 1 1 \
-    --epochs               2 \
+    --epochs               1 \
     --batch_size           2 \
     --lr                   1e-4 \
     --num_workers          12 \

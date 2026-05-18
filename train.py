@@ -38,7 +38,8 @@ from monai.transforms import (
 from monai.data import decollate_batch
 
 sys.path.insert(0, str(Path(__file__).parent))
-from datagen import create_dataloader
+from datagen import AxonSubsetDataset, create_dataloader
+from datagen.gpu_cache_builder import build_gpu_tensor_cache
 from train_extras import DiceCEClDiceLoss, NestedShellInteriorLoss, RandPerlinNoised
 
 
@@ -178,6 +179,9 @@ def parse_args():
                    help='Random subsets drawn per label volume per epoch')
     p.add_argument('--cache_epochs',     type=int,   default=1,
                    help='Reuse each synthesized train cache for N epochs before refreshing')
+    p.add_argument('--cache_builder',    default='cpu', choices=['cpu', 'gpu'],
+                   help='Cache synthesis backend. cpu = DataLoader workers build batches; '
+                        'gpu = dedicated GPU cache builder from raw label/prob tensors.')
     p.add_argument('--max_volumes',      type=int,   default=None,
                    help='Cap number of label volumes loaded (None = all). Applied before train/val split.')
     p.add_argument('--seed',             type=int,   default=42)
@@ -188,6 +192,9 @@ def parse_args():
     p.add_argument('--n_label_groups',  type=int,   default=8,
                    help='Collapse unique axon IDs to N groups before synthesis '
                         '(speeds up cornucopia morphological ops ~N_axons/N times)')
+    p.add_argument('--gpu_label_block_size', type=int, default=8,
+                   help='Label block size for the dedicated GPU cache builder. '
+                        'Only used with --cache_builder gpu.')
     # Synthesis params
     p.add_argument('--no_images',        action='store_true',
                    help='Skip image synthesis (use raw label/prob tensors). For debugging only.')
@@ -272,6 +279,10 @@ def main():
         )
     if args.cldice_iters < 1:
         raise ValueError(f'--cldice_iters must be >= 1, got {args.cldice_iters}')
+    if args.gpu_label_block_size < 1:
+        raise ValueError(
+            f'--gpu_label_block_size must be >= 1, got {args.gpu_label_block_size}'
+        )
 
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -281,14 +292,18 @@ def main():
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     log.info(f'Train device: {device}')
+    if args.cache_builder == 'gpu' and device.type != 'cuda':
+        raise RuntimeError('--cache_builder gpu requires CUDA')
+    if args.cache_builder == 'gpu' and args.no_images:
+        raise ValueError('--cache_builder gpu is incompatible with --no_images')
     # Fixed input shape → cuDNN benchmarks fastest conv algorithm once then reuses it
     torch.backends.cudnn.benchmark = True
     monai.config.print_config()
 
     # --- Source DataLoaders ---
-    # Workers run cornucopia CPU synthesis in parallel to build RAM caches.
-    loader_kwargs = dict(
-        generate_images=(not args.no_images),
+    # Source samples can be built by CPU workers or by the dedicated GPU cache builder.
+    source_kwargs = dict(
+        label_dir=args.label_dir,
         num_samples_per_volume=args.samples_per_vol,
         val_fraction=args.val_fraction,
         max_volumes=args.max_volumes,
@@ -300,30 +315,61 @@ def main():
         subset_fraction=(args.subset_fraction_lo, args.subset_fraction_hi),
         segmentation_mode=args.segmentation_mode,
     )
-    train_source_loader = create_dataloader(
-        label_dir=args.label_dir,
-        batch_size=args.batch_size,
-        num_workers=args.num_workers,
-        split='train',
-        shuffle=True,
-        drop_last=True,
-        persistent_workers=True,
-        **loader_kwargs,
-    )
-    val_source_loader = create_dataloader(
-        label_dir=args.label_dir,
-        batch_size=1,
-        num_workers=max(2, args.num_workers // 4),
-        split='val',
-        shuffle=False,
-        drop_last=False,
-        persistent_workers=False,
-        **loader_kwargs,
-    )
+    if args.cache_builder == 'gpu':
+        train_cache_source = AxonSubsetDataset(
+            split='train',
+            generate_images=False,
+            **source_kwargs,
+        )
+        val_cache_source = AxonSubsetDataset(
+            split='val',
+            generate_images=False,
+            **source_kwargs,
+        )
+        log.info(
+            'Dedicated GPU cache builder enabled '
+            f'(gpu_label_block_size={args.gpu_label_block_size}, '
+            'source synthesis bypasses DataLoader workers)'
+        )
+        log.info(f'Source train samples/cache build: {len(train_cache_source)}')
+        log.info(f'Source val samples/cache build:   {len(val_cache_source)}')
+    else:
+        loader_kwargs = dict(source_kwargs)
+        loader_kwargs['generate_images'] = (not args.no_images)
+        train_cache_source = create_dataloader(
+            batch_size=args.batch_size,
+            num_workers=args.num_workers,
+            split='train',
+            shuffle=True,
+            drop_last=True,
+            persistent_workers=True,
+            **loader_kwargs,
+        )
+        val_cache_source = create_dataloader(
+            batch_size=1,
+            num_workers=max(2, args.num_workers // 4),
+            split='val',
+            shuffle=False,
+            drop_last=False,
+            persistent_workers=False,
+            **loader_kwargs,
+        )
 
-    log.info(f'Workers handle CPU synthesis (generate_images={not args.no_images})')
-    log.info(f'Source train batches/cache build: {len(train_source_loader)}')
-    log.info(f'Source val batches/cache build:   {len(val_source_loader)}')
+        log.info(f'Workers handle CPU synthesis (generate_images={not args.no_images})')
+        log.info(f'Source train batches/cache build: {len(train_cache_source)}')
+        log.info(f'Source val batches/cache build:   {len(val_cache_source)}')
+
+    def build_source_cache(source, *, split: str) -> CachedTensorDataset:
+        if args.cache_builder == 'gpu':
+            images, segs, _ = build_gpu_tensor_cache(
+                source,
+                split=split,
+                device=device,
+                log=log,
+                gpu_label_block_size=args.gpu_label_block_size,
+            )
+            return CachedTensorDataset(images, segs)
+        return build_tensor_cache(source, split=split, log=log)
 
     # --- Post-batch augmentation ---
     # Geometric: applied to both image and seg.
@@ -450,8 +496,22 @@ def main():
     use_amp     = device.type == 'cuda'
     scaler      = torch.amp.GradScaler('cuda', enabled=use_amp)
 
+    def _parse_epoch_from_path(path: Path | None) -> int:
+        if path is None:
+            return -1
+        try:
+            return int(path.stem.split('_', 1)[1])
+        except (IndexError, ValueError):
+            return -1
+
+    def _maybe_load_checkpoint(path: Path) -> tuple[dict | None, int]:
+        if not path.exists():
+            return None, -1
+        checkpoint = torch.load(str(path), map_location='cpu')
+        return checkpoint, int(checkpoint.get('epoch', -1))
+
     log.info('Building fixed validation cache...')
-    val_cache = build_tensor_cache(val_source_loader, split='val', log=log)
+    val_cache = build_source_cache(val_cache_source, split='val')
     val_loader = create_cached_loader(
         val_cache,
         batch_size=1,
@@ -473,10 +533,20 @@ def main():
     # --- Resume from checkpoint ---
     if args.resume:
         ckpts = sorted(ckpt_dir.glob('epoch_*.pt'))
-        resume_ckpt = ckpts[-1] if ckpts else (ckpt_dir / 'best_model.pt' if (ckpt_dir / 'best_model.pt').exists() else None)
+        resume_ckpt = ckpts[-1] if ckpts else None
+        resume_epoch = _parse_epoch_from_path(resume_ckpt)
+        resume_state = None
+
+        for candidate in (ckpt_dir / 'best_model.pt', ckpt_dir / 'last_state.pt'):
+            candidate_state, candidate_epoch = _maybe_load_checkpoint(candidate)
+            if candidate_epoch > resume_epoch:
+                resume_ckpt = candidate
+                resume_epoch = candidate_epoch
+                resume_state = candidate_state
+
         if resume_ckpt and resume_ckpt.exists():
             log.info(f'Resuming from {resume_ckpt}')
-            ckpt = torch.load(str(resume_ckpt), map_location=device)
+            ckpt = resume_state if resume_state is not None else torch.load(str(resume_ckpt), map_location=device)
             model.load_state_dict(ckpt['model_state_dict'])
             optimizer.load_state_dict(ckpt['optimizer_state_dict'])
             if 'scheduler_state_dict' in ckpt:
@@ -521,7 +591,9 @@ def main():
     # --- Preemption handler: save checkpoint on SIGTERM so job can be resumed ---
     def _save_preemption_ckpt(signum, frame):
         log.info('SIGTERM received — saving preemption checkpoint...')
-        torch.save(_checkpoint_state(epoch), str(ckpt_dir / f'epoch_{epoch:04d}.pt'))
+        checkpoint_state = _checkpoint_state(epoch)
+        torch.save(checkpoint_state, str(ckpt_dir / f'epoch_{epoch:04d}.pt'))
+        torch.save(checkpoint_state, str(ckpt_dir / 'last_state.pt'))
         log.info(f'Preemption checkpoint saved at epoch {epoch}. Resubmit with --resume.')
         sys.exit(0)
     signal.signal(signal.SIGTERM, _save_preemption_ckpt)
@@ -544,7 +616,7 @@ def main():
                 f'Building train cache cycle {cache_cycle_idx}/{total_cache_cycles} '
                 f'for epochs {epoch}-{epoch + cache_cycle_len - 1}...'
             )
-            train_cache = build_tensor_cache(train_source_loader, split='train', log=log)
+            train_cache = build_source_cache(train_cache_source, split='train')
             train_loader = create_cached_loader(
                 train_cache,
                 batch_size=args.batch_size,
@@ -714,6 +786,8 @@ def main():
                 torch.save(_checkpoint_state(epoch),
                            str(ckpt_dir / 'epoch_0200.pt'))
                 log.info(f'  Saved epoch-200 state → epoch_0200.pt')
+
+        torch.save(_checkpoint_state(epoch), str(ckpt_dir / 'last_state.pt'))
 
         # Save periodic checkpoint every 10 epochs
         if epoch % 10 == 0:

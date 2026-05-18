@@ -27,6 +27,7 @@ import torch
 import cornucopia as cc
 
 from synthspline.imagezoo import AutoBatchTransform
+from .gpu_label_ops import smooth_random_morph_labels, smooth_random_shallow_labels
 
 _log = logging.getLogger(__name__)
 
@@ -95,6 +96,8 @@ class ControlledContrastAxonImage(AutoBatchTransform):
             background_upper_range: tuple = (0.2, 0.4),
             hipct_structures: float = 0.0,
             clean_target_lab: bool = False,
+            gpu_geometry: bool = False,
+            gpu_label_block_size: int = 8,
         ):
             super().__init__()
             self.background            = background
@@ -102,6 +105,8 @@ class ControlledContrastAxonImage(AutoBatchTransform):
             self.background_upper_range = background_upper_range
             self.hipct_structures      = hipct_structures
             self.clean_target_lab      = clean_target_lab
+            self.gpu_geometry          = gpu_geometry
+            self.gpu_label_block_size  = gpu_label_block_size
 
             # --- label perturbation ---
             self.flip = cc.RandomFlipTransform()
@@ -186,11 +191,20 @@ class ControlledContrastAxonImage(AutoBatchTransform):
             _progress(
                 f'forward_start clean_target_lab={self.clean_target_lab} '
                 f'lab_shape={tuple(lab.shape)} prob_present={prob is not None} '
-                f'target_present={target_lab is not None}'
+                f'target_present={target_lab is not None} '
+                f'gpu_geometry={self.gpu_geometry and lab.is_cuda}'
             )
 
-            if target_lab is None:
+            shared_target_geometry = (
+                target_lab is not None and
+                target_lab.shape == lab.shape and
+                torch.equal(target_lab, lab)
+            )
+
+            if target_lab is None or shared_target_geometry:
                 lab, prob = self.flip(lab, prob)
+                if shared_target_geometry:
+                    target_lab = lab.clone()
             else:
                 lab, prob, target_lab = self.flip(lab, prob, target_lab)
             _progress('after_flip')
@@ -205,14 +219,34 @@ class ControlledContrastAxonImage(AutoBatchTransform):
             n_fg_in = int(v.any())
             _erode_retries = 0
             _erode_fallback = False
+            use_fast_gpu_geometry = self.gpu_geometry and v.is_cuda and shared_target_geometry
             _progress('erode_start')
-            if target_v is None:
-                v0, v = v, self.erode_axon(v)
+            if target_v is None or shared_target_geometry:
+                v0 = v
+                if use_fast_gpu_geometry:
+                    v = smooth_random_morph_labels(
+                        v0,
+                        min_radius=-4,
+                        max_radius=4,
+                        field_shape=128,
+                        block_size=self.gpu_label_block_size,
+                    )
+                else:
+                    v = self.erode_axon(v)
                 for _i in range(10):
                     if v.any():
                         break
                     _erode_retries += 1
-                    v = self.erode_axon(v0)
+                    if use_fast_gpu_geometry:
+                        v = smooth_random_morph_labels(
+                            v0,
+                            min_radius=-4,
+                            max_radius=4,
+                            field_shape=128,
+                            block_size=self.gpu_label_block_size,
+                        )
+                    else:
+                        v = self.erode_axon(v0)
                 else:
                     _erode_fallback = True
                     v = v0  # erosion impossible — use un-eroded labels
@@ -237,13 +271,32 @@ class ControlledContrastAxonImage(AutoBatchTransform):
             _shallow_fallback = False
             _t1 = _time.monotonic()
             _progress('shallow_start')
-            if target_v is None:
-                v0, v = v, self.shallow(v)
+            if target_v is None or shared_target_geometry:
+                v0 = v
+                if use_fast_gpu_geometry:
+                    v = smooth_random_shallow_labels(
+                        v0,
+                        min_width=1,
+                        max_width=3,
+                        field_shape=128,
+                        block_size=self.gpu_label_block_size,
+                    )
+                else:
+                    v = self.shallow(v)
                 for _i in range(10):
                     if v.any():
                         break
                     _shallow_retries += 1
-                    v = self.shallow(v0)
+                    if use_fast_gpu_geometry:
+                        v = smooth_random_shallow_labels(
+                            v0,
+                            min_width=1,
+                            max_width=3,
+                            field_shape=128,
+                            block_size=self.gpu_label_block_size,
+                        )
+                    else:
+                        v = self.shallow(v0)
                 else:
                     _shallow_fallback = True
                     v = v0  # shallow impossible — use pre-shallow labels
@@ -272,16 +325,20 @@ class ControlledContrastAxonImage(AutoBatchTransform):
                     f'({_t_erode:.2f}s) | shallow: {_shallow_retries} retries, '
                     f'fallback={_shallow_fallback} ({_t_shallow:.2f}s) | '
                     f'fg_voxels_in={n_fg_in}')
-            if target_v is not None and self.clean_target_lab:
+            if shared_target_geometry and self.clean_target_lab:
+                target_lab = v.clone()
+            elif target_v is not None and self.clean_target_lab:
                 target_lab = target_v.clone()
             if not self.clean_target_lab:
                 _progress('noisylabel_start')
-                if target_v is None:
+                if target_v is None or shared_target_geometry:
                     v = self.noisylabel(v)
                 else:
                     v, target_v = self.noisylabel(v, target_v)
                 _progress(f'noisylabel_done fg_voxels={int((v > 0).sum())}')
-            if target_v is not None and not self.clean_target_lab:
+            if shared_target_geometry and not self.clean_target_lab:
+                target_lab = v.clone()
+            elif target_v is not None and not self.clean_target_lab:
                 target_lab = target_v.clone()
 
             # group axons into shared-intensity classes
@@ -368,10 +425,14 @@ class ControlledContrastAxonImage(AutoBatchTransform):
         fibers_lower_range: tuple = (0.3, 0.5),
         background_upper_range: tuple = (0.2, 0.4),
         hipct_structures: float = 0.0,
+        gpu_geometry: bool = False,
+        gpu_label_block_size: int = 8,
     ):
         super().__init__(
             background=background,
             fibers_lower_range=fibers_lower_range,
             background_upper_range=background_upper_range,
             hipct_structures=hipct_structures,
+            gpu_geometry=gpu_geometry,
+            gpu_label_block_size=gpu_label_block_size,
         )

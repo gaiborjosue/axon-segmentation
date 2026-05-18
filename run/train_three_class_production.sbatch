@@ -61,6 +61,7 @@ python train.py \
     --label_dir            "${LABEL_DIR}" \
     --output_dir           "${OUTPUT_DIR}" \
     --segmentation_mode    three_class_shell_interior \
+    --cache_builder        gpu \
     --three_class_loss_mode nested \
     --three_class_weights  1 1 1 \
     --epochs               200 \
