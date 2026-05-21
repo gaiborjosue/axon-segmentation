@@ -12,7 +12,7 @@ import nibabel as nib
 import numpy as np
 import torch
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from datagen.axon_subset_dataset import AxonSubsetDataset
 from datagen.gpu_cache_builder import build_gpu_tensor_cache

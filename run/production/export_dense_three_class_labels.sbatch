@@ -18,8 +18,8 @@
 # Default out:    /scratch/experiment/dense_labels_vl_three_class/train
 #
 # Optional overrides when submitting:
-#   sbatch --export=ALL,LABEL_DIR=/path/in,OUTPUT_DIR=/path/out run/export_dense_three_class_labels.sbatch
-#   sbatch --export=ALL,MAX_VOLUMES=8,OVERWRITE=1 run/export_dense_three_class_labels.sbatch
+#   sbatch --export=ALL,LABEL_DIR=/path/in,OUTPUT_DIR=/path/out run/production/export_dense_three_class_labels.sbatch
+#   sbatch --export=ALL,MAX_VOLUMES=8,OVERWRITE=1 run/production/export_dense_three_class_labels.sbatch
 # ==============================================================================
 
 set -euo pipefail
@@ -45,7 +45,7 @@ cd "${PROJECT_DIR}"
 export PYTHONUNBUFFERED=1
 
 cmd=(
-  python export_dense_three_class_labels.py
+  python tools/export_dense_three_class_labels.py
   --label_dir "${LABEL_DIR}"
   --output_dir "${OUTPUT_DIR}"
   --copy_meta

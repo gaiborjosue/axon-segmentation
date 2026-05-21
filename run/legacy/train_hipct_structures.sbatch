@@ -23,7 +23,7 @@
 #
 # Label dir: dense_labels_vl/train (0.8 µm, 509 volumes)
 # Partition: mit_preemptable (preemption-safe via SIGTERM checkpoint)
-# Resume:    sbatch train_hipct_structures.sbatch
+# Resume:    sbatch run/legacy/train_hipct_structures.sbatch
 # ==============================================================================
 
 echo "=== 3D UNet HiP-CT Structures Experiment ==="

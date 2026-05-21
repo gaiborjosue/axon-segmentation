@@ -1,6 +1,7 @@
 from pathlib import Path
 import argparse
 import random
+import sys
 import time
 
 import matplotlib.pyplot as plt
@@ -8,6 +9,8 @@ import nibabel as nib
 import numpy as np
 import torch
 import torch.nn as nn
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from datagen.axon_subset_dataset import AxonSubsetDataset
 from datagen.axon_image_controlled_contrast import ControlledContrastAxonImage

@@ -15,11 +15,14 @@ from __future__ import annotations
 import argparse
 import json
 import shutil
+import sys
 import time
 from pathlib import Path
 
 import nibabel as nib
 import numpy as np
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from datagen.axon_subset_dataset import build_shell_interior_target
 

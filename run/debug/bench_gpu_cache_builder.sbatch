@@ -36,7 +36,7 @@ mkdir -p "$(dirname "${OUTPUT_JSON}")" "${OUTPUT_DIR}"
 cd "${PROJECT_DIR}"
 export PYTHONUNBUFFERED=1
 
-python benchmark_gpu_cache_builder.py \
+python tools/benchmark_gpu_cache_builder.py \
   --label_dir "${LABEL_DIR}" \
   --split val \
   --segmentation_mode three_class_shell_interior \
