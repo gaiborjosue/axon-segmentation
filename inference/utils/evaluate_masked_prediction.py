@@ -76,6 +76,12 @@ def parse_args() -> argparse.Namespace:
         default=2,
         help="Number of face-neighbor correction rounds to apply when --correct-neighbors is set.",
     )
+    parser.add_argument(
+        "--device",
+        default="auto",
+        choices=["auto", "cpu", "cuda"],
+        help="Device for clDice computation. 'auto' uses CUDA when available.",
+    )
     parser.add_argument("--output-json", type=Path, default=None)
     return parser.parse_args()
 
@@ -134,6 +140,8 @@ def _compute_metrics(
     prediction: np.ndarray,
     target: np.ndarray,
     valid_mask: np.ndarray,
+    *,
+    cldice_device: torch.device,
 ) -> dict[str, Any]:
     valid = valid_mask.astype(bool)
     pred = prediction.astype(bool) & valid
@@ -150,7 +158,7 @@ def _compute_metrics(
     recall = _safe_divide(tp, tp + fn)
     specificity = _safe_divide(tn, tn + fp)
     accuracy = _safe_divide(tp + tn, tp + tn + fp + fn)
-    cldice = _compute_cldice(pred, truth)
+    cldice = _compute_cldice(pred, truth, device=cldice_device)
 
     valid_voxels = int(valid.sum())
     target_positive = int(truth.sum())
@@ -210,13 +218,14 @@ def _compute_cldice(
     *,
     num_iter: int = 10,
     smooth: float = 1.0,
+    device: torch.device,
 ) -> float:
     pred_tensor = torch.from_numpy(
         prediction.astype(np.float32, copy=False)
-    ).unsqueeze(0).unsqueeze(0)
+    ).unsqueeze(0).unsqueeze(0).to(device)
     target_tensor = torch.from_numpy(
         target.astype(np.float32, copy=False)
-    ).unsqueeze(0).unsqueeze(0)
+    ).unsqueeze(0).unsqueeze(0).to(device)
 
     with torch.no_grad():
         skel_prediction = _soft_skeletonize(pred_tensor, num_iter=num_iter)
@@ -304,9 +313,15 @@ def _evaluate_prediction(
     *,
     correct_neighbors: bool,
     correct_neighbor_rounds: int,
+    cldice_device: torch.device,
 ) -> dict[str, Any]:
     evaluation = {
-        "metrics": _compute_metrics(prediction, target, valid_mask),
+        "metrics": _compute_metrics(
+            prediction,
+            target,
+            valid_mask,
+            cldice_device=cldice_device,
+        ),
     }
 
     if correct_neighbors:
@@ -320,6 +335,7 @@ def _evaluate_prediction(
             corrected_prediction,
             target,
             valid_mask,
+            cldice_device=cldice_device,
         )
         evaluation["correction"] = correction
 
@@ -328,6 +344,17 @@ def _evaluate_prediction(
 
 def main() -> int:
     args = parse_args()
+
+    if args.device == "auto":
+        cldice_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    elif args.device == "cuda":
+        if not torch.cuda.is_available():
+            raise ValueError("--device cuda requested but CUDA is not available.")
+        cldice_device = torch.device("cuda")
+    else:
+        cldice_device = torch.device("cpu")
+
+    print(f"clDice device: {cldice_device}")
 
     if args.correct_neighbors and args.correct_neighbor_rounds < 1:
         raise ValueError("--correct-neighbor-rounds must be >= 1 when correction is enabled.")
@@ -356,6 +383,7 @@ def main() -> int:
                 valid_mask,
                 correct_neighbors=args.correct_neighbors,
                 correct_neighbor_rounds=args.correct_neighbor_rounds,
+                cldice_device=cldice_device,
             )
             evaluations.append({"threshold": threshold, **evaluation})
 
@@ -369,6 +397,7 @@ def main() -> int:
             "valid_mask_path": str(args.valid_mask),
             "shape": list(prediction_raw.shape),
             "mode": "threshold_sweep",
+            "cldice_device": str(cldice_device),
             "sweep": {
                 "start": args.sweep_start,
                 "stop": args.sweep_stop,
@@ -399,6 +428,7 @@ def main() -> int:
             valid_mask,
             correct_neighbors=args.correct_neighbors,
             correct_neighbor_rounds=args.correct_neighbor_rounds,
+            cldice_device=cldice_device,
         )
         summary = {
             "prediction_path": str(args.prediction),
@@ -406,6 +436,7 @@ def main() -> int:
             "valid_mask_path": str(args.valid_mask),
             "shape": list(prediction_raw.shape),
             "mode": "single_threshold",
+            "cldice_device": str(cldice_device),
             "threshold": args.threshold,
             **evaluation,
         }
