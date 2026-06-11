@@ -1,33 +1,35 @@
 #!/bin/bash
-#SBATCH --job-name=infer_hipct
+#SBATCH --job-name=infer_microct
 #SBATCH --partition=mit_normal_gpu
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=4
-#SBATCH --mem=64G
+#SBATCH --mem=32G
 #SBATCH --time=2:00:00
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=edward.gaibor001@umb.edu
-#SBATCH --output=/home/egaibor/orcd/scratch/experiment/logs/infer_hipct_%j.out
-#SBATCH --error=/home/egaibor/orcd/scratch/experiment/logs/infer_hipct_%j.err
+#SBATCH --output=/home/egaibor/orcd/scratch/experiment/logs/infer_microct_%j.out
+#SBATCH --error=/home/egaibor/orcd/scratch/experiment/logs/infer_microct_%j.err
 
 # ==============================================================================
-# HiP-CT Axon Segmentation Inference
+# microCT Axon Segmentation Inference
 #
-# Input:  Downloaded .npy patch from LINCBrain dandiset 000005
-#         sub-I74_sample-IC_acq-zoom_chunk-01_XPCT.ome.zarr
-#         Bounding box: (1461,210,3295) → (3323,1180,4889)
-#         Patch size: 1862 × 970 × 1594, uint16, 0.857 µm isotropic
+# Default target: DANDI asset
+#   sourcedata/raw/sub-Hb1/micr/
+#   sub-Hb1_sample-lefthemi+ICblock+punch1+piece1+trim9_uCT.ome.zarr
+#
+# Downloaded patch bbox (x,y,z): (269,246,809) -> (1486,1282,1147)
+# Saved patch size: 1217 x 1036 x 338, uint8
+# Native voxel size: 0.3644713433459401 um isotropic
 #
 # Override settings at submit time if needed, for example:
-#   sbatch --export=ALL,CHECKPOINT=/path/to/best_model.pt run/production/infer_hipct.sbatch
-#   sbatch --export=ALL,CHECKPOINT=/path/to/3class.pt,SEGMENTATION_MODE=auto run/production/infer_hipct.sbatch
-#   sbatch --export=ALL,NORM_MODE=clahe,OUTPUT_ROOT=/path/out run/production/infer_hipct.sbatch
-#
+#   sbatch --export=ALL,NORM_MODE=clahe run/production/infer_microct.sbatch
+#   sbatch --export=ALL,CHECKPOINT=/path/to/3class.pt,SEGMENTATION_MODE=auto run/production/infer_microct.sbatch
+#   sbatch --export=ALL,PATCH=/path/to/other.raw,OUTPUT_ROOT=/path/out run/production/infer_microct.sbatch
 # ==============================================================================
 
 set -euo pipefail
 
-echo "=== HiP-CT Axon Segmentation Inference ==="
+echo "=== microCT Axon Segmentation Inference ==="
 echo "Start: $(date)"
 
 module purge
@@ -36,25 +38,23 @@ module load StdEnv gcc/12.2.0 intel/2024.2.1 miniforge/24.3.0-0 cuda/12.4.0
 
 PROJECT_DIR="/home/egaibor/orcd/pool/projects/axon-segmentation/experiment"
 PYTHON_BIN="${PYTHON_BIN:-/home/egaibor/orcd/scratch/experiment/envs/synthsplinegpufix/bin/python}"
-PATCH="${PATCH:-/home/egaibor/orcd/scratch/experiment/hipct/patch_I74_IC_zoom01.raw}"
-CHECKPOINT="${CHECKPOINT:-/home/egaibor/orcd/scratch/experiment/training_out/checkpoints/best_model.pt}"
+PATCH="${PATCH:-/home/egaibor/orcd/scratch/experiment/microct/sub-Hb1_sample-lefthemi+ICblock+punch1+piece1+trim9_uCT_patch.raw}"
+CHECKPOINT="${CHECKPOINT:-/home/egaibor/orcd/scratch/experiment/training_out_higher_range/checkpoints/best_model_ep200.pt}"
 PATCH_BASENAME="$(basename "${PATCH}")"
 PATCH_STEM="${PATCH_BASENAME%.raw}"
 PATCH_STEM="${PATCH_STEM%.npy}"
 PATCH_NAME="${PATCH_NAME:-${PATCH_STEM}}"
-DEFAULT_MODEL_NAME="$(basename "$(dirname "$(dirname "${CHECKPOINT}")")")"
-MODEL_NAME="${MODEL_NAME:-${DEFAULT_MODEL_NAME}}"
-
-# norm_mode options: percentile (original), mean_shift, clahe
-NORM_MODE="${NORM_MODE:-mean_shift}"
+OUTPUT_PREFIX="${OUTPUT_PREFIX:-${PATCH_NAME}}"
+MODEL_NAME="${MODEL_NAME:-higher_range_ep200}"
 
 SEGMENTATION_MODE="${SEGMENTATION_MODE:-auto}"
-VOXEL_SIZE="${VOXEL_SIZE:-0.857}"
+VOXEL_SIZE="${VOXEL_SIZE:-0.3644713433459401}"
+NORM_MODE="${NORM_MODE:-percentile}"
 ROI_SIZE="${ROI_SIZE:-128}"
 SW_BATCH_SIZE="${SW_BATCH_SIZE:-4}"
 OVERLAP="${OVERLAP:-0.5}"
 THRESHOLD="${THRESHOLD:-0.5}"
-OUTPUT_ROOT="${OUTPUT_ROOT:-/home/egaibor/orcd/scratch/experiment/hipct/inference}"
+OUTPUT_ROOT="${OUTPUT_ROOT:-/home/egaibor/orcd/scratch/experiment/microct/inference}"
 OUTPUT_DIR="${OUTPUT_DIR:-${OUTPUT_ROOT}/${PATCH_NAME}/${MODEL_NAME}_${NORM_MODE}}"
 
 mkdir -p "${OUTPUT_DIR}" \
@@ -80,6 +80,7 @@ echo "Patch:             ${PATCH}"
 echo "Checkpoint:        ${CHECKPOINT}"
 echo "Segmentation mode: ${SEGMENTATION_MODE}"
 echo "Output dir:        ${OUTPUT_DIR}"
+echo "Output prefix:     ${OUTPUT_PREFIX}"
 echo "Norm mode:         ${NORM_MODE}"
 echo "Voxel size:        ${VOXEL_SIZE} um"
 echo "ROI size:          ${ROI_SIZE}"
@@ -87,28 +88,29 @@ echo "SW batch:          ${SW_BATCH_SIZE}"
 echo "Overlap:           ${OVERLAP}"
 echo "Threshold:         ${THRESHOLD}"
 
-cd "$PROJECT_DIR"
+cd "${PROJECT_DIR}"
 export PYTHONUNBUFFERED=1
 
 if command -v timeout >/dev/null 2>&1; then
     echo "Running import preflight ..."
-    timeout 60s "${PYTHON_BIN}" -c "import inference.infer_hipct"
+    timeout 60s "${PYTHON_BIN}" -c "import inference.infer_lsm"
 else
     echo "Running import preflight without timeout ..."
-    "${PYTHON_BIN}" -c "import inference.infer_hipct"
+    "${PYTHON_BIN}" -c "import inference.infer_lsm"
 fi
 
-"${PYTHON_BIN}" inference/infer_hipct.py \
-    --input         "${PATCH}" \
-    --checkpoint    "${CHECKPOINT}" \
-    --output_dir    "${OUTPUT_DIR}" \
+"${PYTHON_BIN}" inference/infer_lsm.py \
+    --input             "${PATCH}" \
+    --checkpoint        "${CHECKPOINT}" \
+    --output_dir        "${OUTPUT_DIR}" \
+    --output_prefix     "${OUTPUT_PREFIX}" \
     --segmentation_mode "${SEGMENTATION_MODE}" \
-    --voxel_size    "${VOXEL_SIZE}" \
-    --roi_size      "${ROI_SIZE}" \
-    --sw_batch_size "${SW_BATCH_SIZE}" \
-    --overlap       "${OVERLAP}" \
-    --threshold     "${THRESHOLD}" \
-    --norm_mode     "${NORM_MODE}"
+    --voxel_size        "${VOXEL_SIZE}" \
+    --roi_size          "${ROI_SIZE}" \
+    --sw_batch_size     "${SW_BATCH_SIZE}" \
+    --overlap           "${OVERLAP}" \
+    --threshold         "${THRESHOLD}" \
+    --norm_mode         "${NORM_MODE}"
 
 echo ""
 echo "=== Done! ==="

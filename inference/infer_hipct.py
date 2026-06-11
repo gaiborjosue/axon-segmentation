@@ -48,6 +48,8 @@ def parse_args():
 
 def save_nii(arr: np.ndarray, path: Path, voxel_size: float):
     """Save numpy array as NIfTI with isotropic voxel-size affine."""
+    if arr.dtype == np.float16:
+        arr = arr.astype(np.float32)
     affine = np.diag([voxel_size, voxel_size, voxel_size, 1.0])
     nib.save(nib.Nifti1Image(arr, affine=affine), str(path))
 
@@ -162,10 +164,12 @@ def main():
 
     print(f"  Normalised range: [{patch_f.min():.3f}, {patch_f.max():.3f}]  mean={patch_f.mean():.3f}")
 
-    tensor = torch.from_numpy(patch_f).unsqueeze(0).unsqueeze(0).to(
-        device=device,
-        dtype=torch.float32,
-    )
+    save_nii(patch_f, output_dir / "hipct_input.nii.gz", args.voxel_size)
+
+    tensor_dtype = torch.float16 if device.type == "cuda" else torch.float32
+    tensor = torch.from_numpy(patch_f).unsqueeze(0).unsqueeze(0).to(dtype=tensor_dtype)
+    del patch_f
+    del patch
     print(
         f"  Tensor: {tensor.shape}, dtype={tensor.dtype}, "
         f"range [{tensor.min():.3f}, {tensor.max():.3f}]"
@@ -185,27 +189,33 @@ def main():
 
     # --- Inference ---
     roi_size = (args.roi_size,) * 3
+    sw_device = device
+    stitch_device = torch.device("cpu") if device.type == "cuda" else device
 
     print(f"Running sliding-window inference "
           f"(roi={args.roi_size}, overlap={args.overlap}, sw_batch={args.sw_batch_size}) ...")
+    if device.type == "cuda":
+        print("  Using GPU window inference with CPU stitching in fp16 to reduce VRAM and host RAM")
 
     autocast_enabled = device.type == "cuda"
     with torch.no_grad(), torch.amp.autocast("cuda", enabled=autocast_enabled):
         pred_logits = sliding_window_inference(
             tensor, roi_size, args.sw_batch_size, model,
             overlap=args.overlap, mode="gaussian",
+            sw_device=sw_device,
+            device=stitch_device,
         )
 
     # Move to CPU and free GPU memory before post-processing
     del tensor
-    pred_logits_cpu = pred_logits.cpu()
-    del pred_logits
-    torch.cuda.empty_cache()
+    pred_logits_cpu = pred_logits if pred_logits.device.type == "cpu" else pred_logits.cpu()
+    if pred_logits_cpu is not pred_logits:
+        del pred_logits
+    if device.type == "cuda":
+        torch.cuda.empty_cache()
 
     outputs = postprocess_logits(pred_logits_cpu, segmentation_mode, args.threshold)
     del pred_logits_cpu
-
-    save_nii(patch_f, output_dir / "hipct_input.nii.gz", args.voxel_size)
 
     save_nii(outputs["pred_prob"], output_dir / "hipct_pred_prob.nii.gz", args.voxel_size)
 
