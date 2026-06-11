@@ -82,6 +82,23 @@ def parse_args() -> argparse.Namespace:
         choices=["auto", "cpu", "cuda"],
         help="Device for clDice computation. 'auto' uses CUDA when available.",
     )
+    parser.add_argument(
+        "--topology-metrics",
+        action="store_true",
+        help="Compute Betti numbers and Euler characteristic for prediction and target.",
+    )
+    parser.add_argument(
+        "--topology-connectivity",
+        type=int,
+        default=6,
+        choices=[6, 26],
+        help="Foreground connectivity for Betti metrics. Background uses the complementary connectivity.",
+    )
+    parser.add_argument(
+        "--topology-on-sweep",
+        action="store_true",
+        help="Compute topology metrics at every threshold during a sweep. This can be slow.",
+    )
     parser.add_argument("--output-json", type=Path, default=None)
     return parser.parse_args()
 
@@ -244,6 +261,157 @@ def _compute_cldice(
     return float(cldice.item())
 
 
+def _connectivity_rank(connectivity: int) -> int:
+    if connectivity == 6:
+        return 1
+    if connectivity == 26:
+        return 3
+    raise ValueError(f"Unsupported topology connectivity: {connectivity}")
+
+
+def _complementary_connectivity(connectivity: int) -> int:
+    if connectivity == 6:
+        return 26
+    if connectivity == 26:
+        return 6
+    raise ValueError(f"Unsupported topology connectivity: {connectivity}")
+
+
+def _valid_bbox(valid_mask: np.ndarray) -> tuple[slice, slice, slice] | None:
+    coords = np.argwhere(valid_mask)
+    if coords.size == 0:
+        return None
+    lo = coords.min(axis=0)
+    hi = coords.max(axis=0) + 1
+    return tuple(slice(int(start), int(stop)) for start, stop in zip(lo, hi))
+
+
+def _border_component_ids(labels: np.ndarray) -> set[int]:
+    if labels.size == 0:
+        return set()
+
+    border_values = np.concatenate(
+        [
+            labels[0, :, :].ravel(),
+            labels[-1, :, :].ravel(),
+            labels[:, 0, :].ravel(),
+            labels[:, -1, :].ravel(),
+            labels[:, :, 0].ravel(),
+            labels[:, :, -1].ravel(),
+        ]
+    )
+    return {int(value) for value in np.unique(border_values) if value != 0}
+
+
+def _compute_betti_numbers(
+    mask: np.ndarray,
+    valid_mask: np.ndarray,
+    *,
+    foreground_connectivity: int,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    from scipy import ndimage as ndi
+    from skimage.measure import euler_number
+
+    valid = valid_mask.astype(bool)
+    bbox = _valid_bbox(valid)
+    if bbox is None:
+        topology = {
+            "betti0": 0,
+            "betti1": 0,
+            "betti2": 0,
+            "euler_characteristic": 0,
+            "foreground_voxels": 0,
+        }
+        metadata = {
+            "valid_bbox": None,
+            "analyzed_shape": [0, 0, 0],
+            "valid_voxels": 0,
+            "invalid_voxels_in_bbox": 0,
+            "invalid_fraction_in_bbox": 0.0,
+        }
+        return topology, metadata
+
+    valid_crop = valid[bbox]
+    foreground = mask.astype(bool)[bbox] & valid_crop
+
+    fg_rank = _connectivity_rank(foreground_connectivity)
+    bg_connectivity = _complementary_connectivity(foreground_connectivity)
+    bg_rank = _connectivity_rank(bg_connectivity)
+
+    fg_structure = ndi.generate_binary_structure(3, fg_rank)
+    _, beta0 = ndi.label(foreground, structure=fg_structure)
+
+    background = np.logical_not(foreground)
+    bg_structure = ndi.generate_binary_structure(3, bg_rank)
+    background_labels, background_count = ndi.label(background, structure=bg_structure)
+    border_ids = _border_component_ids(background_labels)
+    all_background_ids = set(range(1, int(background_count) + 1))
+    beta2 = len(all_background_ids - border_ids)
+
+    euler_characteristic = int(euler_number(foreground, connectivity=fg_rank))
+    beta1 = int(beta0 + beta2 - euler_characteristic)
+
+    starts = [int(axis_slice.start) for axis_slice in bbox]
+    stops = [int(axis_slice.stop) for axis_slice in bbox]
+    valid_voxels = int(valid_crop.sum())
+    bbox_voxels = int(valid_crop.size)
+    invalid_voxels = bbox_voxels - valid_voxels
+
+    topology = {
+        "betti0": int(beta0),
+        "betti1": beta1,
+        "betti2": int(beta2),
+        "euler_characteristic": euler_characteristic,
+        "foreground_voxels": int(foreground.sum()),
+    }
+    metadata = {
+        "valid_bbox": {
+            "start": starts,
+            "stop": stops,
+        },
+        "analyzed_shape": list(foreground.shape),
+        "valid_voxels": valid_voxels,
+        "invalid_voxels_in_bbox": invalid_voxels,
+        "invalid_fraction_in_bbox": _safe_divide(invalid_voxels, bbox_voxels),
+    }
+    return topology, metadata
+
+
+def _compute_topology_comparison(
+    prediction: np.ndarray,
+    target: np.ndarray,
+    valid_mask: np.ndarray,
+    *,
+    foreground_connectivity: int,
+) -> dict[str, Any]:
+    pred_topology, metadata = _compute_betti_numbers(
+        prediction,
+        valid_mask,
+        foreground_connectivity=foreground_connectivity,
+    )
+    target_topology, _ = _compute_betti_numbers(
+        target,
+        valid_mask,
+        foreground_connectivity=foreground_connectivity,
+    )
+    error_keys = ["betti0", "betti1", "betti2", "euler_characteristic"]
+    absolute_error = {
+        key: abs(int(pred_topology[key]) - int(target_topology[key]))
+        for key in error_keys
+    }
+
+    return {
+        "connectivity": {
+            "foreground": foreground_connectivity,
+            "background": _complementary_connectivity(foreground_connectivity),
+        },
+        "metadata": metadata,
+        "prediction": pred_topology,
+        "target": target_topology,
+        "absolute_error": absolute_error,
+    }
+
+
 def _has_face_neighbor(mask: np.ndarray) -> np.ndarray:
     mask = mask.astype(bool, copy=False)
     neighbors = np.zeros_like(mask, dtype=bool)
@@ -314,6 +482,8 @@ def _evaluate_prediction(
     correct_neighbors: bool,
     correct_neighbor_rounds: int,
     cldice_device: torch.device,
+    topology_metrics: bool,
+    topology_connectivity: int,
 ) -> dict[str, Any]:
     evaluation = {
         "metrics": _compute_metrics(
@@ -323,6 +493,13 @@ def _evaluate_prediction(
             cldice_device=cldice_device,
         ),
     }
+    if topology_metrics:
+        evaluation["topology"] = _compute_topology_comparison(
+            prediction,
+            target,
+            valid_mask,
+            foreground_connectivity=topology_connectivity,
+        )
 
     if correct_neighbors:
         corrected_prediction, correction = _apply_neighbor_correction(
@@ -337,6 +514,13 @@ def _evaluate_prediction(
             valid_mask,
             cldice_device=cldice_device,
         )
+        if topology_metrics:
+            evaluation["corrected_topology"] = _compute_topology_comparison(
+                corrected_prediction,
+                target,
+                valid_mask,
+                foreground_connectivity=topology_connectivity,
+            )
         evaluation["correction"] = correction
 
     return evaluation
@@ -384,6 +568,8 @@ def main() -> int:
                 correct_neighbors=args.correct_neighbors,
                 correct_neighbor_rounds=args.correct_neighbor_rounds,
                 cldice_device=cldice_device,
+                topology_metrics=args.topology_metrics and args.topology_on_sweep,
+                topology_connectivity=args.topology_connectivity,
             )
             evaluations.append({"threshold": threshold, **evaluation})
 
@@ -398,6 +584,11 @@ def main() -> int:
             "shape": list(prediction_raw.shape),
             "mode": "threshold_sweep",
             "cldice_device": str(cldice_device),
+            "topology_metrics": {
+                "enabled": bool(args.topology_metrics and args.topology_on_sweep),
+                "connectivity": args.topology_connectivity,
+                "computed_on_sweep": bool(args.topology_metrics and args.topology_on_sweep),
+            },
             "sweep": {
                 "start": args.sweep_start,
                 "stop": args.sweep_stop,
@@ -429,6 +620,8 @@ def main() -> int:
             correct_neighbors=args.correct_neighbors,
             correct_neighbor_rounds=args.correct_neighbor_rounds,
             cldice_device=cldice_device,
+            topology_metrics=args.topology_metrics,
+            topology_connectivity=args.topology_connectivity,
         )
         summary = {
             "prediction_path": str(args.prediction),
@@ -437,6 +630,10 @@ def main() -> int:
             "shape": list(prediction_raw.shape),
             "mode": "single_threshold",
             "cldice_device": str(cldice_device),
+            "topology_metrics": {
+                "enabled": bool(args.topology_metrics),
+                "connectivity": args.topology_connectivity,
+            },
             "threshold": args.threshold,
             **evaluation,
         }

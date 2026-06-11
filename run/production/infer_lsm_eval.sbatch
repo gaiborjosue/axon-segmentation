@@ -42,12 +42,16 @@ OUTPUT_ROOT="${OUTPUT_ROOT:-/home/egaibor/orcd/scratch/experiment/webknossos/inf
 OUTPUT_PREFIX="${OUTPUT_PREFIX:-${PATCH_NAME}}"
 OUTPUT_DIR="${OUTPUT_DIR:-${OUTPUT_ROOT}/${PATCH_NAME}/${MODEL_NAME}_${NORM_MODE}}"
 SKIP_INFERENCE="${SKIP_INFERENCE:-0}"
+EVAL_TAG="${EVAL_TAG:-eval}"
 
 SWEEP_START="${SWEEP_START:-0.05}"
 SWEEP_STOP="${SWEEP_STOP:-0.95}"
 SWEEP_STEP="${SWEEP_STEP:-0.01}"
 CORRECT_NEIGHBOR_ROUNDS="${CORRECT_NEIGHBOR_ROUNDS:-2}"
 EVAL_DEVICE="${EVAL_DEVICE:-cuda}"
+TOPOLOGY_METRICS="${TOPOLOGY_METRICS:-0}"
+TOPOLOGY_ON_SWEEP="${TOPOLOGY_ON_SWEEP:-0}"
+TOPOLOGY_CONNECTIVITY="${TOPOLOGY_CONNECTIVITY:-6}"
 
 mkdir -p "${OUTPUT_DIR}" \
          "/home/egaibor/orcd/scratch/experiment/logs"
@@ -61,8 +65,10 @@ echo "Valid mask:    ${VALID_MASK}"
 echo "Checkpoint:    ${CHECKPOINT}"
 echo "Output dir:    ${OUTPUT_DIR}"
 echo "Skip inference:${SKIP_INFERENCE}"
+echo "Eval tag:      ${EVAL_TAG}"
 echo "Sweep:         ${SWEEP_START}..${SWEEP_STOP} step ${SWEEP_STEP}"
 echo "Eval device:   ${EVAL_DEVICE}"
+echo "Topology:      ${TOPOLOGY_METRICS} connectivity=${TOPOLOGY_CONNECTIVITY} sweep=${TOPOLOGY_ON_SWEEP}"
 
 if [[ ! -f "${PATCH}" ]]; then
     echo "Missing patch: ${PATCH}" >&2
@@ -97,7 +103,22 @@ else
     echo "Skipping inference and reusing existing outputs"
 fi
 
-SWEEP_JSON="${OUTPUT_DIR}/${OUTPUT_PREFIX}_eval_sweep.json"
+TOPOLOGY_ARGS=()
+if [[ "${TOPOLOGY_METRICS}" == "1" || "${TOPOLOGY_METRICS}" == "true" || "${TOPOLOGY_METRICS}" == "TRUE" ]]; then
+    TOPOLOGY_ARGS=(--topology-metrics --topology-connectivity "${TOPOLOGY_CONNECTIVITY}")
+fi
+
+TOPOLOGY_SWEEP_ARGS=()
+if [[ ${#TOPOLOGY_ARGS[@]} -gt 0 && ( "${TOPOLOGY_ON_SWEEP}" == "1" || "${TOPOLOGY_ON_SWEEP}" == "true" || "${TOPOLOGY_ON_SWEEP}" == "TRUE" ) ]]; then
+    TOPOLOGY_SWEEP_ARGS=("${TOPOLOGY_ARGS[@]}" --topology-on-sweep)
+fi
+
+BEST_OUTPUT_PREFIX="${OUTPUT_PREFIX}"
+if [[ "${EVAL_TAG}" != "eval" ]]; then
+    BEST_OUTPUT_PREFIX="${OUTPUT_PREFIX}_${EVAL_TAG}"
+fi
+
+SWEEP_JSON="${OUTPUT_DIR}/${OUTPUT_PREFIX}_${EVAL_TAG}_sweep.json"
 python inference/utils/evaluate_masked_prediction.py \
     --prediction              "${OUTPUT_DIR}/${OUTPUT_PREFIX}_pred_prob.nii.gz" \
     --target                  "${TARGET}" \
@@ -108,13 +129,14 @@ python inference/utils/evaluate_masked_prediction.py \
     --correct-neighbors \
     --correct-neighbor-rounds "${CORRECT_NEIGHBOR_ROUNDS}" \
     --device                  "${EVAL_DEVICE}" \
-    --output-json             "${SWEEP_JSON}"
+    --output-json             "${SWEEP_JSON}" \
+    "${TOPOLOGY_SWEEP_ARGS[@]}"
 
 BEST_JSON=$(python inference/utils/materialize_best_threshold_prediction.py \
     --probability   "${OUTPUT_DIR}/${OUTPUT_PREFIX}_pred_prob.nii.gz" \
     --sweep-json    "${SWEEP_JSON}" \
     --output-dir    "${OUTPUT_DIR}" \
-    --output-prefix "${OUTPUT_PREFIX}")
+    --output-prefix "${BEST_OUTPUT_PREFIX}")
 
 echo "${BEST_JSON}"
 BEST_PRED=$(printf '%s\n' "${BEST_JSON}" | python -c 'import json,sys; print(json.load(sys.stdin)["output_path"])')
@@ -126,7 +148,8 @@ python inference/utils/evaluate_masked_prediction.py \
     --correct-neighbors \
     --correct-neighbor-rounds "${CORRECT_NEIGHBOR_ROUNDS}" \
     --device                  "${EVAL_DEVICE}" \
-    --output-json             "${OUTPUT_DIR}/${OUTPUT_PREFIX}_eval_corrected.json"
+    --output-json             "${OUTPUT_DIR}/${OUTPUT_PREFIX}_${EVAL_TAG}_corrected.json" \
+    "${TOPOLOGY_ARGS[@]}"
 
 echo ""
 echo "=== Done! ==="

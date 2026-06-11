@@ -72,6 +72,11 @@ def parse_args():
         default=0.857,
         help="Isotropic voxel size in µm for saved crop affines.",
     )
+    p.add_argument(
+        "--invert_contrast",
+        action="store_true",
+        help="Invert normalized input crops, matching inference on dark-axon data.",
+    )
     return p.parse_args()
 
 
@@ -241,6 +246,8 @@ def main():
         # Input crop: uint16 → float32 normalised
         inp_crop = inp[ox:ox+C, oy:oy+C, oz:oz+C].astype(np.float32)
         inp_norm = normalize_input_crop(inp_crop)
+        if args.invert_contrast:
+            inp_norm = 1.0 - inp_norm
 
         # Foreground crops
         pred_crop = pred[ox:ox+C, oy:oy+C, oz:oz+C]

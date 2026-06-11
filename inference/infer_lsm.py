@@ -56,6 +56,11 @@ def parse_args():
         choices=["percentile", "mean_shift", "clahe"],
         help="Intensity normalization strategy",
     )
+    p.add_argument(
+        "--invert_contrast",
+        action="store_true",
+        help="Invert normalized intensities before inference, for data where axons are dark.",
+    )
     return p.parse_args()
 
 
@@ -175,6 +180,12 @@ def main():
         f"  Normalized range: [{patch_f.min():.3f}, {patch_f.max():.3f}] "
         f" mean={patch_f.mean():.3f}"
     )
+    if args.invert_contrast:
+        patch_f = 1.0 - patch_f
+        print(
+            f"  Inverted contrast range: [{patch_f.min():.3f}, {patch_f.max():.3f}] "
+            f" mean={patch_f.mean():.3f}"
+        )
 
     tensor = torch.from_numpy(patch_f).unsqueeze(0).unsqueeze(0).to(
         device=device,
