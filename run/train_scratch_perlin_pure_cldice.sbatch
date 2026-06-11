@@ -23,7 +23,7 @@
 # Controlled differences vs train_production.sbatch:
 #   --epochs 200
 #   --perlin_noise_prob 0.30
-#   --perlin_noise_amplitude_[0.02, 0.08]
+#   --perlin_noise_amplitude_min 0.02 --perlin_noise_amplitude_max 0.08
 #   --experimental_cldice --cldice_weight 1.0
 #   no --init_checkpoint                  (clean weights)
 #   no --hipct_structures flag            (use default off)

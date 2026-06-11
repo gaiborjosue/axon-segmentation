@@ -23,6 +23,7 @@ Typical usage
 """
 import random as pyrandom
 import logging as _logging
+import os
 import time as _time
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Tuple, Union
@@ -45,6 +46,16 @@ _log = _logging.getLogger(__name__)
 _worker_synth: Dict[frozenset, object] = {}
 
 
+def _progress_enabled() -> bool:
+    value = os.environ.get('AXON_DATASET_PROGRESS', '')
+    return value.lower() not in {'', '0', 'false', 'no'}
+
+
+def _progress(message: str) -> None:
+    if _progress_enabled():
+        print(f'[dataset-progress pid={os.getpid()}] {message}', flush=True)
+
+
 def _get_or_create_synth(synth_kwargs: dict):
     """Return the process-local synthesizer for the given kwargs, creating it on first call.
 
@@ -54,6 +65,7 @@ def _get_or_create_synth(synth_kwargs: dict):
     key = frozenset(synth_kwargs.items())
     if key not in _worker_synth:
         from datagen.axon_image_controlled_contrast import ControlledContrastAxonImage
+        _progress(f'creating worker-local synth with kwargs={dict(sorted(synth_kwargs.items()))}')
         _worker_synth[key] = ControlledContrastAxonImage.XForm(**synth_kwargs)
     return _worker_synth[key]
 
@@ -68,6 +80,7 @@ def worker_init_fn(worker_id: int) -> None:
     seed = (torch.initial_seed() + worker_id) % (2 ** 32)
     np.random.seed(seed)
     pyrandom.seed(seed)
+    _progress(f'worker_init worker_id={worker_id} seed={seed}')
 
 
 def collate_fn(batch: list) -> dict:
@@ -232,6 +245,33 @@ def collapse_labels(label: torch.Tensor, n_groups: int = 8) -> torch.Tensor:
     return out
 
 
+def build_shell_interior_target(labels: np.ndarray) -> np.ndarray:
+    """Derive a 3-class target: 0=background, 1=shell, 2=interior.
+
+    Interior is defined as voxels whose 6-connected neighbors all belong to the
+    same axon instance. Everything else in the foreground becomes shell.
+    """
+    if labels.ndim != 3:
+        raise ValueError(f'Expected 3D label volume, got shape={labels.shape}')
+
+    padded = np.pad(labels, 1, mode='constant', constant_values=0)
+    center = padded[1:-1, 1:-1, 1:-1]
+    interior = center > 0
+    interior &= padded[:-2, 1:-1, 1:-1] == center
+    interior &= padded[2:, 1:-1, 1:-1] == center
+    interior &= padded[1:-1, :-2, 1:-1] == center
+    interior &= padded[1:-1, 2:, 1:-1] == center
+    interior &= padded[1:-1, 1:-1, :-2] == center
+    interior &= padded[1:-1, 1:-1, 2:] == center
+
+    shell = (center > 0) & ~interior
+
+    target = np.zeros(labels.shape, dtype=np.int64)
+    target[shell] = 1
+    target[interior] = 2
+    return target
+
+
 class AxonSubsetDataset(Dataset):
     """On-the-fly axon subset dataset for 3-D UNet training.
 
@@ -275,6 +315,10 @@ class AxonSubsetDataset(Dataset):
         Probability (per sample) of injecting synthetic HiP-CT-like
         background structures (cell bodies + myelin shells).  0.0 = off
         (default, preserves existing behaviour).
+    segmentation_mode : str
+        Target construction mode. ``'binary'`` uses the current soft
+        foreground-probability target; ``'three_class_shell_interior'`` derives
+        hard labels with classes background, shell, and interior.
     """
 
     def __init__(
@@ -291,6 +335,7 @@ class AxonSubsetDataset(Dataset):
         background_upper_range: Tuple[float, float] = (0.2, 0.4),
         background: float = 0.5,
         hipct_structures: float = 0.0,
+        segmentation_mode: str = 'binary',
         split: str = 'train',
         val_fraction: float = 0.2,
     ):
@@ -301,6 +346,14 @@ class AxonSubsetDataset(Dataset):
         self.transform              = transform
         self.num_samples_per_volume = num_samples_per_volume
         self.n_label_groups         = n_label_groups
+        self.segmentation_mode      = segmentation_mode
+
+        if self.segmentation_mode not in {'binary', 'three_class_shell_interior'}:
+            raise ValueError(
+                'segmentation_mode must be one of '
+                "{'binary', 'three_class_shell_interior'}, got "
+                f'{self.segmentation_mode!r}'
+            )
 
         # Synthesizer kwargs — model is created lazily per worker process.
         self._synth_kwargs = dict(
@@ -308,6 +361,7 @@ class AxonSubsetDataset(Dataset):
             fibers_lower_range=fibers_lower_range,
             background_upper_range=background_upper_range,
             hipct_structures=hipct_structures,
+            clean_target_lab=(segmentation_mode == 'three_class_shell_interior'),
         )
 
         all_label_files: List[Path] = sorted(self.label_dir.glob('*_label.nii.gz'))
@@ -397,10 +451,25 @@ class AxonSubsetDataset(Dataset):
             fraction=n_kept / n_total,
         )
 
+    def _build_seg_target(
+        self,
+        labels: torch.Tensor,
+        prob: torch.Tensor,
+    ) -> torch.Tensor:
+        if self.segmentation_mode == 'binary':
+            return prob.float()
+
+        labels_np = labels.squeeze(0).cpu().numpy().copy()
+        prob_np = prob.squeeze(0).cpu().numpy()
+        labels_np[prob_np <= 0] = 0
+        target_np = build_shell_interior_target(labels_np)
+        return torch.from_numpy(target_np).unsqueeze(0).long()
+
     def __getitem__(self, idx: int) -> dict:
         _t_total = _time.monotonic()
         vol_idx      = idx // self.num_samples_per_volume
         labels, prob = self._volumes[vol_idx]          # from in-memory cache
+        _progress(f'idx={idx} vol={vol_idx} start shape={labels.shape}')
 
         # Deterministic validation: same idx always produces identical sample (fix #6)
         if self.split == 'val':
@@ -418,6 +487,11 @@ class AxonSubsetDataset(Dataset):
             labels, prob, keep_prob_field
         )
         _t_subset = _time.monotonic() - _t0
+        _progress(
+            f'idx={idx} vol={vol_idx} subset_ready '
+            f'fg_voxels={(subset_labels > 0).sum()} subset_time={_t_subset:.2f}s '
+            f'n_kept={subset_info.get("n_kept")} n_total={subset_info.get("n_total")}'
+        )
 
         # (1, D, H, W)  —  channel-first, MONAI convention
         label_t = torch.from_numpy(subset_labels).unsqueeze(0).long()
@@ -440,17 +514,28 @@ class AxonSubsetDataset(Dataset):
                 if fg_count >= _MIN_FG_VOXELS:
                     break
                 _fg_redraws += 1
+                _progress(
+                    f'idx={idx} vol={vol_idx} redraw={_fg_redraws} '
+                    f'fg_count={fg_count} below_min={_MIN_FG_VOXELS}'
+                )
                 keep_prob_field, _ = DensityDistribution.random(labels.shape)
                 s_labels, s_prob, subset_info = self._apply_subset(
                     labels, prob, keep_prob_field)
                 label_t = torch.from_numpy(s_labels).unsqueeze(0).long()
                 prob_t  = torch.from_numpy(s_prob).unsqueeze(0).float()
             fg_count = int((label_t > 0).sum())
+            _progress(
+                f'idx={idx} vol={vol_idx} redraw_done total_redraws={_fg_redraws} '
+                f'final_fg_count={fg_count}'
+            )
 
             # Collapse 3000+ axon IDs → n_groups before cornucopia morphological
             # ops — gives ~(N_axons/n_groups)x speedup in synthesis.
             _t1 = _time.monotonic()
-            label_g = collapse_labels(label_t, n_groups=self.n_label_groups)
+            if self.segmentation_mode == 'binary':
+                synth_label_t = collapse_labels(label_t, n_groups=self.n_label_groups)
+            else:
+                synth_label_t = label_t
             _t_collapse = _time.monotonic() - _t1
 
             # Worker-local CPU synthesizer (fix #2)
@@ -459,13 +544,26 @@ class AxonSubsetDataset(Dataset):
             # Cornucopia loops are capped (fix B) so synthesis always
             # completes.  No timeout needed — just run and catch any
             # unexpected exceptions.
-            image = out_prob = None
+            image = out_prob = out_label_t = None
+            seg_label_t = label_t
+            seg_prob_t = prob_t
             _t2 = _time.monotonic()
+            _progress(f'idx={idx} vol={vol_idx} synth_start fg_count={fg_count}')
             try:
                 with torch.no_grad():
-                    image, out_prob = synth(label_g, prob_t)
+                    if self.segmentation_mode == 'binary':
+                        image, out_prob = synth(synth_label_t, prob_t)
+                    else:
+                        image, out_prob, out_label_t = synth(synth_label_t, prob_t, label_t)
+                        seg_label_t = out_label_t
+                    seg_prob_t = out_prob
+                _progress(
+                    f'idx={idx} vol={vol_idx} synth_done elapsed={_time.monotonic() - _t2:.2f}s '
+                    f'image_shape={tuple(image.shape) if image is not None else None}'
+                )
             except Exception as exc:
                 _log.warning(f'idx={idx} vol={vol_idx}: synth error: {exc}')
+                _progress(f'idx={idx} vol={vol_idx} synth_error={exc!r}')
 
             _used_alt_vol = False
             _used_raw_fallback = False
@@ -473,15 +571,31 @@ class AxonSubsetDataset(Dataset):
                 # Primary synthesis failed — try a different random volume.
                 _used_alt_vol = True
                 alt_idx = np.random.randint(0, len(self._volumes))
+                _progress(f'idx={idx} vol={vol_idx} primary_failed alt_vol={alt_idx}')
                 alt_labels, alt_prob = self._volumes[alt_idx]
                 alt_s, alt_p, _ = self._apply_subset(alt_labels, alt_prob, None)
                 alt_lt = torch.from_numpy(alt_s).unsqueeze(0).long()
                 alt_pt = torch.from_numpy(alt_p).unsqueeze(0).float()
-                alt_lg = collapse_labels(alt_lt, n_groups=self.n_label_groups)
+                if self.segmentation_mode == 'binary':
+                    alt_synth_label_t = collapse_labels(alt_lt, n_groups=self.n_label_groups)
+                else:
+                    alt_synth_label_t = alt_lt
                 try:
                     with torch.no_grad():
-                        image, out_prob = synth(alt_lg, alt_pt)
+                        if self.segmentation_mode == 'binary':
+                            image, out_prob = synth(alt_synth_label_t, alt_pt)
+                        else:
+                            image, out_prob, out_label_t = synth(alt_synth_label_t, alt_pt, alt_lt)
+                    _progress(
+                        f'idx={idx} vol={vol_idx} alt_synth_done alt_vol={alt_idx} '
+                        f'image_shape={tuple(image.shape) if image is not None else None}'
+                    )
+                    if image is not None:
+                        seg_prob_t = out_prob
+                        if self.segmentation_mode != 'binary':
+                            seg_label_t = out_label_t
                 except Exception:
+                    _progress(f'idx={idx} vol={vol_idx} alt_synth_error alt_vol={alt_idx}')
                     pass
                 if image is None:
                     _used_raw_fallback = True
@@ -489,6 +603,7 @@ class AxonSubsetDataset(Dataset):
                         f'idx={idx}: ALL synthesis failed (vol={vol_idx}, '
                         f'alt_vol={alt_idx}), returning raw prob')
                     image, out_prob = prob_t.float(), prob_t.float()
+                    _progress(f'idx={idx} vol={vol_idx} raw_fallback_used')
 
             _t_synth = _time.monotonic() - _t2
             _t_total_elapsed = _time.monotonic() - _t_total
@@ -502,10 +617,15 @@ class AxonSubsetDataset(Dataset):
 
             # 'image': network input  |  'seg': segmentation target
             result['image'] = image      # (1, D, H, W)
-            result['seg']   = out_prob   # (1, D, H, W)
+            result['seg']   = self._build_seg_target(seg_label_t, seg_prob_t)
+            _progress(
+                f'idx={idx} vol={vol_idx} return image_shape={tuple(result["image"].shape)} '
+                f'seg_shape={tuple(result["seg"].shape)} total_elapsed={_t_total_elapsed:.2f}s'
+            )
         else:
             result['label'] = label_t
             result['prob']  = prob_t
+            _progress(f'idx={idx} vol={vol_idx} return_raw label_shape={tuple(label_t.shape)}')
 
         if self.transform is not None:
             result = self.transform(result)

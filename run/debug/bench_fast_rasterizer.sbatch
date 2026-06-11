@@ -15,7 +15,7 @@
 # Benchmarks fast_rasterize vs synthspline on a GPU node.
 #
 # Submit:
-#   sbatch experiment/run/debug/bench_fast_rasterizer.sbatch
+#   sbatch run/debug/bench_fast_rasterizer.sbatch
 #
 # Monitor:
 #   tail -f /home/egaibor/orcd/scratch/experiment/logs/bench_fast_rasterizer_<JOB_ID>.out

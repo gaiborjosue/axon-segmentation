@@ -22,8 +22,8 @@
 # Model default: higher_range epoch-200 checkpoint.
 #
 # Override settings at submit time if needed, for example:
-#   sbatch --export=ALL,NORM_MODE=clahe run/infer_lsm.sbatch
-#   sbatch --export=ALL,PATCH=/path/to/other.npy,OUTPUT_PREFIX=other run/infer_lsm.sbatch
+#   sbatch --export=ALL,NORM_MODE=clahe run/production/infer_lsm.sbatch
+#   sbatch --export=ALL,PATCH=/path/to/other.npy,OUTPUT_PREFIX=other run/production/infer_lsm.sbatch
 # ==============================================================================
 
 set -euo pipefail

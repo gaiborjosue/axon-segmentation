@@ -15,10 +15,12 @@ import time
 from pathlib import Path
 
 import torch
+import torch.nn.functional as F
 from torch.utils.data import DataLoader, Dataset
 from torch.utils.tensorboard import SummaryWriter
 
 import monai
+from monai.losses import DiceCELoss
 from monai.networks.nets import UNet
 from monai.networks.layers import Norm
 from monai.metrics import DiceMetric
@@ -36,8 +38,9 @@ from monai.transforms import (
 from monai.data import decollate_batch
 
 sys.path.insert(0, str(Path(__file__).parent))
-from datagen import create_dataloader
-from train_extras import DiceCEClDiceLoss, RandPerlinNoised
+from datagen import AxonSubsetDataset, create_dataloader
+from datagen.gpu_cache_builder import build_gpu_tensor_cache
+from train_extras import DiceCEClDiceLoss, NestedShellInteriorLoss, RandPerlinNoised
 
 
 class CachedTensorDataset(Dataset):
@@ -75,7 +78,7 @@ def build_tensor_cache(loader, split: str, log: logging.Logger) -> CachedTensorD
                 f'Available keys: {sorted(batch.keys())}'
             )
         image_batches.append(batch['image'].detach().cpu().clone().float())
-        seg_batches.append(batch['seg'].detach().cpu().clone().float())
+        seg_batches.append(batch['seg'].detach().cpu().clone())
         if batch_idx == 1 or batch_idx % 50 == 0 or batch_idx == len(loader):
             log.info(f'  caching {split}: batch {batch_idx:3d}/{len(loader)}')
 
@@ -112,6 +115,39 @@ def create_cached_loader(
     )
 
 
+def _binary_dice(pred: torch.Tensor, target: torch.Tensor) -> float:
+    pred = pred.bool()
+    target = target.bool()
+    intersection = torch.logical_and(pred, target).sum().item()
+    pred_sum = pred.sum().item()
+    target_sum = target.sum().item()
+    denominator = pred_sum + target_sum
+    if denominator == 0:
+        return 1.0
+    return (2.0 * intersection) / denominator
+
+
+def _compute_three_class_metrics(
+    logits: torch.Tensor,
+    target: torch.Tensor,
+) -> tuple[float, float, float, float, torch.Tensor]:
+    probabilities = torch.softmax(logits, dim=1)
+    pred_classes = probabilities.argmax(dim=1, keepdim=True)
+
+    collapsed_pred = pred_classes > 0
+    collapsed_target = target > 0
+    shell_target = target == 1
+    interior_target = target == 2
+
+    collapsed_dice = _binary_dice(collapsed_pred, collapsed_target)
+    shell_dice = _binary_dice(pred_classes == 1, shell_target)
+    interior_dice = _binary_dice(pred_classes == 2, interior_target)
+    selection_score = (collapsed_dice + shell_dice + interior_dice) / 3.0
+
+    foreground_prob = probabilities[:, 1:].sum(dim=1, keepdim=True)
+    return collapsed_dice, shell_dice, interior_dice, selection_score, foreground_prob
+
+
 # ---------------------------------------------------------------------------
 # Args
 # ---------------------------------------------------------------------------
@@ -122,6 +158,15 @@ def parse_args():
     p.add_argument('--output_dir',  required=True,  help='Where to save checkpoints + TensorBoard logs')
     p.add_argument('--init_checkpoint', default=None,
                    help='Initialize model weights from a checkpoint and start a new optimization run.')
+    p.add_argument('--segmentation_mode', default='binary',
+                   choices=['binary', 'three_class_shell_interior'],
+                   help='Target/mode selection: baseline binary foreground or 3-class shell/interior.')
+    p.add_argument('--three_class_loss_mode', default='nested',
+                   choices=['flat', 'nested'],
+                   help='Three-class objective: flat multiclass DiceCE or nested foreground/core loss.')
+    p.add_argument('--three_class_weights', type=float, nargs=3,
+                   default=(1.0, 1.0, 1.0), metavar=('BG_W', 'SHELL_W', 'INTERIOR_W'),
+                   help='Class weights for 3-class loss terms (background, shell, interior).')
     p.add_argument('--epochs',           type=int,   default=200)
     p.add_argument('--batch_size',       type=int,   default=2)
     p.add_argument('--lr',               type=float, default=1e-4)
@@ -134,6 +179,9 @@ def parse_args():
                    help='Random subsets drawn per label volume per epoch')
     p.add_argument('--cache_epochs',     type=int,   default=1,
                    help='Reuse each synthesized train cache for N epochs before refreshing')
+    p.add_argument('--cache_builder',    default='cpu', choices=['cpu', 'gpu'],
+                   help='Cache synthesis backend. cpu = DataLoader workers build batches; '
+                        'gpu = dedicated GPU cache builder from raw label/prob tensors.')
     p.add_argument('--max_volumes',      type=int,   default=None,
                    help='Cap number of label volumes loaded (None = all). Applied before train/val split.')
     p.add_argument('--seed',             type=int,   default=42)
@@ -144,6 +192,9 @@ def parse_args():
     p.add_argument('--n_label_groups',  type=int,   default=8,
                    help='Collapse unique axon IDs to N groups before synthesis '
                         '(speeds up cornucopia morphological ops ~N_axons/N times)')
+    p.add_argument('--gpu_label_block_size', type=int, default=8,
+                   help='Label block size for the dedicated GPU cache builder. '
+                        'Only used with --cache_builder gpu.')
     # Synthesis params
     p.add_argument('--no_images',        action='store_true',
                    help='Skip image synthesis (use raw label/prob tensors). For debugging only.')
@@ -204,6 +255,10 @@ def main():
         raise ValueError(f'--cache_epochs must be >= 1, got {args.cache_epochs}')
     if args.resume and args.init_checkpoint:
         raise ValueError('--resume and --init_checkpoint are mutually exclusive')
+    if args.segmentation_mode == 'three_class_shell_interior' and args.experimental_cldice:
+        raise ValueError('Experimental clDice is not supported for 3-class mode')
+    if args.segmentation_mode == 'three_class_shell_interior' and len(args.three_class_weights) != 3:
+        raise ValueError('--three_class_weights must contain exactly 3 values')
     if not 0.0 <= args.perlin_noise_prob <= 1.0:
         raise ValueError(
             f'--perlin_noise_prob must be in [0, 1], got {args.perlin_noise_prob}'
@@ -224,6 +279,10 @@ def main():
         )
     if args.cldice_iters < 1:
         raise ValueError(f'--cldice_iters must be >= 1, got {args.cldice_iters}')
+    if args.gpu_label_block_size < 1:
+        raise ValueError(
+            f'--gpu_label_block_size must be >= 1, got {args.gpu_label_block_size}'
+        )
 
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -233,14 +292,18 @@ def main():
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     log.info(f'Train device: {device}')
+    if args.cache_builder == 'gpu' and device.type != 'cuda':
+        raise RuntimeError('--cache_builder gpu requires CUDA')
+    if args.cache_builder == 'gpu' and args.no_images:
+        raise ValueError('--cache_builder gpu is incompatible with --no_images')
     # Fixed input shape → cuDNN benchmarks fastest conv algorithm once then reuses it
     torch.backends.cudnn.benchmark = True
     monai.config.print_config()
 
     # --- Source DataLoaders ---
-    # Workers run cornucopia CPU synthesis in parallel to build RAM caches.
-    loader_kwargs = dict(
-        generate_images=(not args.no_images),
+    # Source samples can be built by CPU workers or by the dedicated GPU cache builder.
+    source_kwargs = dict(
+        label_dir=args.label_dir,
         num_samples_per_volume=args.samples_per_vol,
         val_fraction=args.val_fraction,
         max_volumes=args.max_volumes,
@@ -250,31 +313,63 @@ def main():
         background=args.background,
         hipct_structures=args.hipct_structures,
         subset_fraction=(args.subset_fraction_lo, args.subset_fraction_hi),
+        segmentation_mode=args.segmentation_mode,
     )
-    train_source_loader = create_dataloader(
-        label_dir=args.label_dir,
-        batch_size=args.batch_size,
-        num_workers=args.num_workers,
-        split='train',
-        shuffle=True,
-        drop_last=True,
-        persistent_workers=True,
-        **loader_kwargs,
-    )
-    val_source_loader = create_dataloader(
-        label_dir=args.label_dir,
-        batch_size=1,
-        num_workers=max(2, args.num_workers // 4),
-        split='val',
-        shuffle=False,
-        drop_last=False,
-        persistent_workers=False,
-        **loader_kwargs,
-    )
+    if args.cache_builder == 'gpu':
+        train_cache_source = AxonSubsetDataset(
+            split='train',
+            generate_images=False,
+            **source_kwargs,
+        )
+        val_cache_source = AxonSubsetDataset(
+            split='val',
+            generate_images=False,
+            **source_kwargs,
+        )
+        log.info(
+            'Dedicated GPU cache builder enabled '
+            f'(gpu_label_block_size={args.gpu_label_block_size}, '
+            'source synthesis bypasses DataLoader workers)'
+        )
+        log.info(f'Source train samples/cache build: {len(train_cache_source)}')
+        log.info(f'Source val samples/cache build:   {len(val_cache_source)}')
+    else:
+        loader_kwargs = dict(source_kwargs)
+        loader_kwargs['generate_images'] = (not args.no_images)
+        train_cache_source = create_dataloader(
+            batch_size=args.batch_size,
+            num_workers=args.num_workers,
+            split='train',
+            shuffle=True,
+            drop_last=True,
+            persistent_workers=True,
+            **loader_kwargs,
+        )
+        val_cache_source = create_dataloader(
+            batch_size=1,
+            num_workers=max(2, args.num_workers // 4),
+            split='val',
+            shuffle=False,
+            drop_last=False,
+            persistent_workers=False,
+            **loader_kwargs,
+        )
 
-    log.info(f'Workers handle CPU synthesis (generate_images={not args.no_images})')
-    log.info(f'Source train batches/cache build: {len(train_source_loader)}')
-    log.info(f'Source val batches/cache build:   {len(val_source_loader)}')
+        log.info(f'Workers handle CPU synthesis (generate_images={not args.no_images})')
+        log.info(f'Source train batches/cache build: {len(train_cache_source)}')
+        log.info(f'Source val batches/cache build:   {len(val_cache_source)}')
+
+    def build_source_cache(source, *, split: str) -> CachedTensorDataset:
+        if args.cache_builder == 'gpu':
+            images, segs, _ = build_gpu_tensor_cache(
+                source,
+                split=split,
+                device=device,
+                log=log,
+                gpu_label_block_size=args.gpu_label_block_size,
+            )
+            return CachedTensorDataset(images, segs)
+        return build_tensor_cache(source, split=split, log=log)
 
     # --- Post-batch augmentation ---
     # Geometric: applied to both image and seg.
@@ -314,7 +409,7 @@ def main():
     model = UNet(
         spatial_dims=3,
         in_channels=1,
-        out_channels=1,
+        out_channels=1 if args.segmentation_mode == 'binary' else 3,
         channels=(16, 32, 64, 128, 256),
         strides=(2, 2, 2, 2),
         num_res_units=2,
@@ -324,22 +419,49 @@ def main():
     log.info(f'Model params: {sum(p.numel() for p in model.parameters()):,}')
 
     # --- Loss, optimizer, scheduler ---
-    # DiceCE remains the baseline; soft-clDice is an optional auxiliary term.
-    cldice_weight = args.cldice_weight if args.experimental_cldice else 0.0
-    loss_fn = DiceCEClDiceLoss(
-        cldice_weight=cldice_weight,
-        lambda_dice=0.5,
-        lambda_ce=0.5,
-        cldice_iters=args.cldice_iters,
-    )
-    if cldice_weight > 0.0:
-        log.info(
-            'Loss: '
-            f'{1.0 - cldice_weight:.2f} * DiceCE + {cldice_weight:.2f} * soft-clDice '
-            f'(experimental, iters={args.cldice_iters})'
+    # DiceCE remains the baseline; soft-clDice is an optional auxiliary term
+    # for binary mode only.
+    if args.segmentation_mode == 'binary':
+        cldice_weight = args.cldice_weight if args.experimental_cldice else 0.0
+        loss_fn = DiceCEClDiceLoss(
+            cldice_weight=cldice_weight,
+            lambda_dice=0.5,
+            lambda_ce=0.5,
+            cldice_iters=args.cldice_iters,
         )
+        if cldice_weight > 0.0:
+            log.info(
+                'Loss: '
+                f'{1.0 - cldice_weight:.2f} * DiceCE + {cldice_weight:.2f} * soft-clDice '
+                f'(experimental, iters={args.cldice_iters})'
+            )
+        else:
+            log.info('Loss: DiceCE only')
     else:
-        log.info('Loss: DiceCE only')
+        class_weights = tuple(float(v) for v in args.three_class_weights)
+        if args.three_class_loss_mode == 'flat':
+            loss_fn = DiceCELoss(
+                include_background=False,
+                to_onehot_y=True,
+                softmax=True,
+                weight=torch.tensor(class_weights, device=device, dtype=torch.float32),
+                lambda_dice=0.5,
+                lambda_ce=0.5,
+            )
+            log.info(
+                'Loss: flat multiclass DiceCE (3-class shell/interior mode) '
+                f'with weights={class_weights} and include_background=False'
+            )
+        else:
+            loss_fn = NestedShellInteriorLoss(
+                class_weights=class_weights,
+                lambda_dice=0.5,
+                lambda_ce=0.5,
+            ).to(device)
+            log.info(
+                'Loss: nested foreground/core DiceCE (3-class shell/interior mode) '
+                f'with weights={class_weights}'
+            )
     # AdamW: decoupled weight decay regularises all weights equally regardless
     # of gradient magnitude (Loshchilov & Hutter 2019).
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-2)
@@ -355,23 +477,41 @@ def main():
         milestones=[warmup_epochs])
 
     # --- Post-processing for validation ---
-    post_pred  = Compose([Activations(sigmoid=True), AsDiscrete(threshold=0.5)])
-    post_label = Compose([AsDiscrete(threshold=0.5)])
-
-    dice_metric = DiceMetric(include_background=False, reduction='mean', get_not_nans=False)
+    if args.segmentation_mode == 'binary':
+        post_pred  = Compose([Activations(sigmoid=True), AsDiscrete(threshold=0.5)])
+        post_label = Compose([AsDiscrete(threshold=0.5)])
+        dice_metric = DiceMetric(include_background=False, reduction='mean', get_not_nans=False)
+    else:
+        post_pred = post_label = dice_metric = None
 
     # --- Logging ---
     writer = SummaryWriter(log_dir=str(tb_dir))
 
     best_dice   = -1.0
     best_epoch  = -1
+    best_metric_name = 'val_dice' if args.segmentation_mode == 'binary' else 'val_selection_score'
+    best_metric_label = 'Val Dice' if args.segmentation_mode == 'binary' else 'Val Selection Score'
     start_epoch = 1
     roi_size    = (args.roi_size,) * 3
     use_amp     = device.type == 'cuda'
     scaler      = torch.amp.GradScaler('cuda', enabled=use_amp)
 
+    def _parse_epoch_from_path(path: Path | None) -> int:
+        if path is None:
+            return -1
+        try:
+            return int(path.stem.split('_', 1)[1])
+        except (IndexError, ValueError):
+            return -1
+
+    def _maybe_load_checkpoint(path: Path) -> tuple[dict | None, int]:
+        if not path.exists():
+            return None, -1
+        checkpoint = torch.load(str(path), map_location='cpu')
+        return checkpoint, int(checkpoint.get('epoch', -1))
+
     log.info('Building fixed validation cache...')
-    val_cache = build_tensor_cache(val_source_loader, split='val', log=log)
+    val_cache = build_source_cache(val_cache_source, split='val')
     val_loader = create_cached_loader(
         val_cache,
         batch_size=1,
@@ -393,10 +533,20 @@ def main():
     # --- Resume from checkpoint ---
     if args.resume:
         ckpts = sorted(ckpt_dir.glob('epoch_*.pt'))
-        resume_ckpt = ckpts[-1] if ckpts else (ckpt_dir / 'best_model.pt' if (ckpt_dir / 'best_model.pt').exists() else None)
+        resume_ckpt = ckpts[-1] if ckpts else None
+        resume_epoch = _parse_epoch_from_path(resume_ckpt)
+        resume_state = None
+
+        for candidate in (ckpt_dir / 'best_model.pt', ckpt_dir / 'last_state.pt'):
+            candidate_state, candidate_epoch = _maybe_load_checkpoint(candidate)
+            if candidate_epoch > resume_epoch:
+                resume_ckpt = candidate
+                resume_epoch = candidate_epoch
+                resume_state = candidate_state
+
         if resume_ckpt and resume_ckpt.exists():
             log.info(f'Resuming from {resume_ckpt}')
-            ckpt = torch.load(str(resume_ckpt), map_location=device)
+            ckpt = resume_state if resume_state is not None else torch.load(str(resume_ckpt), map_location=device)
             model.load_state_dict(ckpt['model_state_dict'])
             optimizer.load_state_dict(ckpt['optimizer_state_dict'])
             if 'scheduler_state_dict' in ckpt:
@@ -404,9 +554,12 @@ def main():
             if 'scaler_state_dict' in ckpt:
                 scaler.load_state_dict(ckpt['scaler_state_dict'])
             start_epoch = ckpt.get('epoch', 0) + 1
-            best_dice   = ckpt.get('val_dice', -1.0)
+            best_dice   = ckpt.get(best_metric_name, ckpt.get('val_metric_value', ckpt.get('val_dice', -1.0)))
             best_epoch  = ckpt.get('best_epoch', -1)
-            log.info(f'Resumed at epoch {start_epoch}, best_dice={best_dice:.4f} @ epoch {best_epoch}')
+            log.info(
+                f'Resumed at epoch {start_epoch}, '
+                f'best_{best_metric_name}={best_dice:.4f} @ epoch {best_epoch}'
+            )
         else:
             log.info('--resume set but no checkpoint found — starting from scratch')
 
@@ -427,6 +580,9 @@ def main():
             'scheduler_state_dict': scheduler.state_dict(),
             'scaler_state_dict': scaler.state_dict(),
             'val_dice': best_dice,
+            'val_metric_name': best_metric_name,
+            'val_metric_value': best_dice,
+            best_metric_name: best_dice,
             'best_epoch': best_epoch,
             'args': vars(args),
             'train_cache_start_epoch': train_cache_start_epoch,
@@ -435,7 +591,9 @@ def main():
     # --- Preemption handler: save checkpoint on SIGTERM so job can be resumed ---
     def _save_preemption_ckpt(signum, frame):
         log.info('SIGTERM received — saving preemption checkpoint...')
-        torch.save(_checkpoint_state(epoch), str(ckpt_dir / f'epoch_{epoch:04d}.pt'))
+        checkpoint_state = _checkpoint_state(epoch)
+        torch.save(checkpoint_state, str(ckpt_dir / f'epoch_{epoch:04d}.pt'))
+        torch.save(checkpoint_state, str(ckpt_dir / 'last_state.pt'))
         log.info(f'Preemption checkpoint saved at epoch {epoch}. Resubmit with --resume.')
         sys.exit(0)
     signal.signal(signal.SIGTERM, _save_preemption_ckpt)
@@ -458,7 +616,7 @@ def main():
                 f'Building train cache cycle {cache_cycle_idx}/{total_cache_cycles} '
                 f'for epochs {epoch}-{epoch + cache_cycle_len - 1}...'
             )
-            train_cache = build_tensor_cache(train_source_loader, split='train', log=log)
+            train_cache = build_source_cache(train_cache_source, split='train')
             train_loader = create_cached_loader(
                 train_cache,
                 batch_size=args.batch_size,
@@ -533,6 +691,10 @@ def main():
         if epoch % args.val_interval == 0 or epoch == args.epochs:
             model.eval()
             log_images_this_epoch = True   # capture first val batch for TensorBoard
+            val_dice_values = []
+            val_shell_dice_values = []
+            val_interior_dice_values = []
+            val_selection_scores = []
             with torch.no_grad():
                 for val_batch in val_loader:
                     val_image = val_batch['image'].to(device)
@@ -543,9 +705,18 @@ def main():
                             val_image, roi_size, args.sw_batch_size, model,
                             overlap=0.5,
                         )
-                    val_pred_post  = [post_pred(p)  for p in decollate_batch(val_pred)]
-                    val_label_post = [post_label(l) for l in decollate_batch(val_seg)]
-                    dice_metric(y_pred=val_pred_post, y=val_label_post)
+                    if args.segmentation_mode == 'binary':
+                        val_pred_post  = [post_pred(p)  for p in decollate_batch(val_pred)]
+                        val_label_post = [post_label(l) for l in decollate_batch(val_seg)]
+                        dice_metric(y_pred=val_pred_post, y=val_label_post)
+                    else:
+                        collapsed_dice, shell_dice, interior_dice, selection_score, foreground_prob = (
+                            _compute_three_class_metrics(val_pred, val_seg)
+                        )
+                        val_dice_values.append(collapsed_dice)
+                        val_shell_dice_values.append(shell_dice)
+                        val_interior_dice_values.append(interior_dice)
+                        val_selection_scores.append(selection_score)
 
                     # Log center-slice images from first batch only
                     if log_images_this_epoch:
@@ -554,20 +725,49 @@ def main():
                         # Normalise image slice to [0,1] for display
                         img_slice  = val_image[0, 0, :, :, z]
                         img_slice  = (img_slice - img_slice.min()) / (img_slice.max() - img_slice.min() + 1e-8)
-                        seg_slice  = val_seg[0, 0, :, :, z]
-                        pred_slice = torch.sigmoid(val_pred[0, 0, :, :, z])
+                        if args.segmentation_mode == 'binary':
+                            seg_slice  = val_seg[0, 0, :, :, z]
+                            pred_slice = torch.sigmoid(val_pred[0, 0, :, :, z])
+                        else:
+                            seg_slice  = (val_seg[0, 0, :, :, z] > 0).float()
+                            pred_slice = foreground_prob[0, 0, :, :, z]
                         # Stack side-by-side: image | ground truth | prediction
                         grid = torch.stack([img_slice, seg_slice, pred_slice], dim=0).unsqueeze(1)  # (3,1,H,W)
                         writer.add_images('val/image_gt_pred', grid, epoch, dataformats='NCHW')
 
-            mean_dice = dice_metric.aggregate().item()
-            dice_metric.reset()
+            if args.segmentation_mode == 'binary':
+                mean_dice = dice_metric.aggregate().item()
+                dice_metric.reset()
+            else:
+                mean_dice = float(sum(val_dice_values) / max(len(val_dice_values), 1))
+                mean_shell_dice = float(sum(val_shell_dice_values) / max(len(val_shell_dice_values), 1))
+                mean_interior_dice = float(sum(val_interior_dice_values) / max(len(val_interior_dice_values), 1))
+                mean_selection_score = float(sum(val_selection_scores) / max(len(val_selection_scores), 1))
 
-            log.info(f'  Val Dice: {mean_dice:.4f} (best={best_dice:.4f} @ epoch {best_epoch})')
+            if args.segmentation_mode == 'binary':
+                log.info(f'  Val Dice: {mean_dice:.4f} (best={best_dice:.4f} @ epoch {best_epoch})')
+            else:
+                log.info(f'  Val Dice: {mean_dice:.4f}')
             writer.add_scalar('val/dice', mean_dice, epoch)
+            if args.segmentation_mode == 'three_class_shell_interior':
+                log.info(
+                    f'  Val Shell Dice: {mean_shell_dice:.4f} | '
+                    f'Interior Dice: {mean_interior_dice:.4f}'
+                )
+                log.info(
+                    f'  Val Selection Score: {mean_selection_score:.4f} '
+                    f'(best={best_dice:.4f} @ epoch {best_epoch})'
+                )
+                writer.add_scalar('val/shell_dice', mean_shell_dice, epoch)
+                writer.add_scalar('val/interior_dice', mean_interior_dice, epoch)
+                writer.add_scalar('val/selection_score', mean_selection_score, epoch)
 
-            if mean_dice > best_dice:
-                best_dice  = mean_dice
+            current_selection_score = mean_dice
+            if args.segmentation_mode == 'three_class_shell_interior':
+                current_selection_score = mean_selection_score
+
+            if current_selection_score > best_dice:
+                best_dice  = current_selection_score
                 best_epoch = epoch
                 ckpt_path  = ckpt_dir / 'best_model.pt'
                 torch.save(_checkpoint_state(epoch), str(ckpt_path))
@@ -587,6 +787,8 @@ def main():
                            str(ckpt_dir / 'epoch_0200.pt'))
                 log.info(f'  Saved epoch-200 state → epoch_0200.pt')
 
+        torch.save(_checkpoint_state(epoch), str(ckpt_dir / 'last_state.pt'))
+
         # Save periodic checkpoint every 10 epochs
         if epoch % 10 == 0:
             torch.save(_checkpoint_state(epoch), str(ckpt_dir / f'epoch_{epoch:04d}.pt'))
@@ -594,7 +796,7 @@ def main():
     # --- Final summary ---
     log.info('='*60)
     log.info(f'Training complete.')
-    log.info(f'Best Val Dice: {best_dice:.4f} at epoch {best_epoch}')
+    log.info(f'Best {best_metric_label}: {best_dice:.4f} at epoch {best_epoch}')
     log.info(f'Checkpoints:   {ckpt_dir}')
     log.info(f'TensorBoard:   tensorboard --logdir {tb_dir}')
     writer.close()

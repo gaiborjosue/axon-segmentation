@@ -22,7 +22,7 @@
 # Key change vs training_out_larger_voxel: subset_fraction_hi raised 0.8 → 0.9
 #   so model sees densely-packed fascicles during training
 # Partition:  mit_preemptable (2-day limit, preemption-safe via SIGTERM checkpoint)
-# Resume:     sbatch train_production.sbatch  (--resume auto-detects latest ckpt)
+# Resume:     sbatch run/production/train_production.sbatch  (--resume auto-detects latest ckpt)
 # ==============================================================================
 
 echo "=== 3D UNet Production Training ==="
