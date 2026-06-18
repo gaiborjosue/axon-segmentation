@@ -36,7 +36,12 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--prediction", type=Path, required=True)
     parser.add_argument("--target", type=Path, required=True)
-    parser.add_argument("--valid-mask", type=Path, required=True)
+    parser.add_argument(
+        "--valid-mask",
+        type=Path,
+        default=None,
+        help="Optional valid-region mask. If omitted, every target voxel is evaluated.",
+    )
     parser.add_argument(
         "--threshold",
         type=float,
@@ -98,6 +103,11 @@ def parse_args() -> argparse.Namespace:
         "--topology-on-sweep",
         action="store_true",
         help="Compute topology metrics at every threshold during a sweep. This can be slow.",
+    )
+    parser.add_argument(
+        "--corrected-topology-metrics",
+        action="store_true",
+        help="Also compute Betti metrics after neighbor correction. Raw topology is the default.",
     )
     parser.add_argument("--output-json", type=Path, default=None)
     return parser.parse_args()
@@ -484,6 +494,7 @@ def _evaluate_prediction(
     cldice_device: torch.device,
     topology_metrics: bool,
     topology_connectivity: int,
+    corrected_topology_metrics: bool,
 ) -> dict[str, Any]:
     evaluation = {
         "metrics": _compute_metrics(
@@ -514,7 +525,7 @@ def _evaluate_prediction(
             valid_mask,
             cldice_device=cldice_device,
         )
-        if topology_metrics:
+        if topology_metrics and corrected_topology_metrics:
             evaluation["corrected_topology"] = _compute_topology_comparison(
                 corrected_prediction,
                 target,
@@ -542,10 +553,17 @@ def main() -> int:
 
     if args.correct_neighbors and args.correct_neighbor_rounds < 1:
         raise ValueError("--correct-neighbor-rounds must be >= 1 when correction is enabled.")
+    if args.corrected_topology_metrics and not args.topology_metrics:
+        raise ValueError("--corrected-topology-metrics requires --topology-metrics.")
+    if args.corrected_topology_metrics and not args.correct_neighbors:
+        raise ValueError("--corrected-topology-metrics requires --correct-neighbors.")
 
     prediction_raw = _load_array(args.prediction)
     target_raw = _load_array(args.target)
-    valid_mask_raw = _load_array(args.valid_mask)
+    if args.valid_mask is None:
+        valid_mask_raw = np.ones_like(target_raw, dtype=bool)
+    else:
+        valid_mask_raw = _load_array(args.valid_mask)
 
     if prediction_raw.shape != target_raw.shape or prediction_raw.shape != valid_mask_raw.shape:
         raise ValueError(
@@ -570,6 +588,7 @@ def main() -> int:
                 cldice_device=cldice_device,
                 topology_metrics=args.topology_metrics and args.topology_on_sweep,
                 topology_connectivity=args.topology_connectivity,
+                corrected_topology_metrics=args.corrected_topology_metrics,
             )
             evaluations.append({"threshold": threshold, **evaluation})
 
@@ -580,7 +599,7 @@ def main() -> int:
         summary = {
             "prediction_path": str(args.prediction),
             "target_path": str(args.target),
-            "valid_mask_path": str(args.valid_mask),
+            "valid_mask_path": str(args.valid_mask) if args.valid_mask is not None else None,
             "shape": list(prediction_raw.shape),
             "mode": "threshold_sweep",
             "cldice_device": str(cldice_device),
@@ -588,6 +607,7 @@ def main() -> int:
                 "enabled": bool(args.topology_metrics and args.topology_on_sweep),
                 "connectivity": args.topology_connectivity,
                 "computed_on_sweep": bool(args.topology_metrics and args.topology_on_sweep),
+                "corrected_enabled": bool(args.corrected_topology_metrics),
             },
             "sweep": {
                 "start": args.sweep_start,
@@ -622,17 +642,19 @@ def main() -> int:
             cldice_device=cldice_device,
             topology_metrics=args.topology_metrics,
             topology_connectivity=args.topology_connectivity,
+            corrected_topology_metrics=args.corrected_topology_metrics,
         )
         summary = {
             "prediction_path": str(args.prediction),
             "target_path": str(args.target),
-            "valid_mask_path": str(args.valid_mask),
+            "valid_mask_path": str(args.valid_mask) if args.valid_mask is not None else None,
             "shape": list(prediction_raw.shape),
             "mode": "single_threshold",
             "cldice_device": str(cldice_device),
             "topology_metrics": {
                 "enabled": bool(args.topology_metrics),
                 "connectivity": args.topology_connectivity,
+                "corrected_enabled": bool(args.corrected_topology_metrics),
             },
             "threshold": args.threshold,
             **evaluation,

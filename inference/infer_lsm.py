@@ -26,7 +26,7 @@ from monai.networks.nets import UNet
 
 def parse_args():
     p = argparse.ArgumentParser(description="Axon segmentation on an LSM patch")
-    p.add_argument("--input", required=True, help="Path to .npy uint16 patch")
+    p.add_argument("--input", required=True, help="Path to .npy, .nii/.nii.gz, or raw memmap patch")
     p.add_argument("--checkpoint", required=True, help="Path to best_model.pt")
     p.add_argument("--output_dir", required=True, help="Output directory for NIfTI files")
     p.add_argument(
@@ -72,6 +72,8 @@ def save_nii(arr: np.ndarray, path: Path, voxel_size: float):
 def load_patch(input_path: Path) -> np.ndarray:
     if input_path.suffix == ".npy":
         return np.load(input_path)
+    if input_path.suffix == ".nii" or input_path.name.endswith(".nii.gz"):
+        return np.asarray(nib.load(str(input_path)).dataobj)
 
     meta = json.loads(Path(str(input_path) + ".json").read_text())
     return np.memmap(str(input_path), dtype=meta["dtype"], mode="r", shape=tuple(meta["shape"]))
@@ -155,6 +157,8 @@ def postprocess_logits(
         "pred_prob": foreground_prob,
         "pred": foreground_mask,
         "pred_class": pred_class,
+        "pred_shell": (pred_class == 1).astype(np.uint8),
+        "pred_interior": (pred_class == 2).astype(np.uint8),
     }
 
 
@@ -237,6 +241,16 @@ def main():
         save_nii(
             outputs["pred_class"],
             output_dir / f"{output_prefix}_pred_class.nii.gz",
+            args.voxel_size,
+        )
+        save_nii(
+            outputs["pred_shell"],
+            output_dir / f"{output_prefix}_pred_shell.nii.gz",
+            args.voxel_size,
+        )
+        save_nii(
+            outputs["pred_interior"],
+            output_dir / f"{output_prefix}_pred_interior.nii.gz",
             args.voxel_size,
         )
 
