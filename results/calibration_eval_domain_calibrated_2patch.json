@@ -1,0 +1,6198 @@
+{
+  "eval_tag": "eval_domain_calibrated_2patch",
+  "data_root": "/home/egaibor/orcd/scratch/LSM_axonal_marker_annotated_patches",
+  "calibration_patches": [
+    {
+      "dataset": "human_NEFH",
+      "patch": "Human_NEFH_GM"
+    },
+    {
+      "dataset": "macaque_PV",
+      "patch": "macaque_PV_WM_2"
+    }
+  ],
+  "domain_specific": true,
+  "calibration_patches_by_domain": {
+    "human": [
+      {
+        "dataset": "human_NEFH",
+        "patch": "Human_NEFH_GM"
+      }
+    ],
+    "macaque": [
+      {
+        "dataset": "macaque_PV",
+        "patch": "macaque_PV_WM_2"
+      }
+    ]
+  },
+  "heldout_patches": [
+    {
+      "dataset": "human_NEFH",
+      "patch": "Human_NEFH_WM"
+    },
+    {
+      "dataset": "human_NEFH",
+      "patch": "Human_NEFH_transition"
+    },
+    {
+      "dataset": "human_NEFL",
+      "patch": "human_NEFL_GM_1"
+    },
+    {
+      "dataset": "human_NEFL",
+      "patch": "human_NEFL_GM_2"
+    },
+    {
+      "dataset": "human_NEFL",
+      "patch": "human_NEFL_White-Gray_Transition"
+    },
+    {
+      "dataset": "macaque_NEFH",
+      "patch": "macaque_NEFH_GM"
+    },
+    {
+      "dataset": "macaque_NEFH",
+      "patch": "macaque_NEFH_WM"
+    },
+    {
+      "dataset": "macaque_NEFH",
+      "patch": "macaque_NEFH_transition"
+    },
+    {
+      "dataset": "macaque_PV",
+      "patch": "macaque_PV_WM_1"
+    },
+    {
+      "dataset": "macaque_PV",
+      "patch": "macaque_PV_White-Gray_Transition"
+    }
+  ],
+  "threshold_grid": {
+    "start": 0.05,
+    "stop": 0.95,
+    "step": 0.01
+  },
+  "selection_metric": "mean_corrected_dice",
+  "cldice_enabled": false,
+  "calibration_results": {
+    "human": {
+      "binary": {
+        "method": "binary",
+        "selected_threshold": 0.95,
+        "selection_metric": "mean_corrected_dice",
+        "best_calibration_result": {
+          "threshold": 0.95,
+          "mean_dice": 0.4653685016048139,
+          "mean_corrected_dice": 0.7461172449113279,
+          "per_patch_dice": [
+            0.4653685016048139
+          ],
+          "per_patch_corrected_dice": [
+            0.7461172449113279
+          ]
+        },
+        "evaluations": [
+          {
+            "threshold": 0.05,
+            "mean_dice": 0.18718009887180273,
+            "mean_corrected_dice": 0.2395455569675375,
+            "per_patch_dice": [
+              0.18718009887180273
+            ],
+            "per_patch_corrected_dice": [
+              0.2395455569675375
+            ]
+          },
+          {
+            "threshold": 0.06,
+            "mean_dice": 0.19474006214094544,
+            "mean_corrected_dice": 0.2513380268530584,
+            "per_patch_dice": [
+              0.19474006214094544
+            ],
+            "per_patch_corrected_dice": [
+              0.2513380268530584
+            ]
+          },
+          {
+            "threshold": 0.07,
+            "mean_dice": 0.20139481198808848,
+            "mean_corrected_dice": 0.2618718763377791,
+            "per_patch_dice": [
+              0.20139481198808848
+            ],
+            "per_patch_corrected_dice": [
+              0.2618718763377791
+            ]
+          },
+          {
+            "threshold": 0.08,
+            "mean_dice": 0.2073971197228567,
+            "mean_corrected_dice": 0.2714236725620115,
+            "per_patch_dice": [
+              0.2073971197228567
+            ],
+            "per_patch_corrected_dice": [
+              0.2714236725620115
+            ]
+          },
+          {
+            "threshold": 0.09,
+            "mean_dice": 0.21282011839405324,
+            "mean_corrected_dice": 0.2801631965272658,
+            "per_patch_dice": [
+              0.21282011839405324
+            ],
+            "per_patch_corrected_dice": [
+              0.2801631965272658
+            ]
+          },
+          {
+            "threshold": 0.1,
+            "mean_dice": 0.21779481655363997,
+            "mean_corrected_dice": 0.2882298900182587,
+            "per_patch_dice": [
+              0.21779481655363997
+            ],
+            "per_patch_corrected_dice": [
+              0.2882298900182587
+            ]
+          },
+          {
+            "threshold": 0.11,
+            "mean_dice": 0.2224189929572318,
+            "mean_corrected_dice": 0.29578678150288024,
+            "per_patch_dice": [
+              0.2224189929572318
+            ],
+            "per_patch_corrected_dice": [
+              0.29578678150288024
+            ]
+          },
+          {
+            "threshold": 0.12,
+            "mean_dice": 0.2267501926326228,
+            "mean_corrected_dice": 0.30286961173119265,
+            "per_patch_dice": [
+              0.2267501926326228
+            ],
+            "per_patch_corrected_dice": [
+              0.30286961173119265
+            ]
+          },
+          {
+            "threshold": 0.13,
+            "mean_dice": 0.23082929917938275,
+            "mean_corrected_dice": 0.3095987336138762,
+            "per_patch_dice": [
+              0.23082929917938275
+            ],
+            "per_patch_corrected_dice": [
+              0.3095987336138762
+            ]
+          },
+          {
+            "threshold": 0.14,
+            "mean_dice": 0.2346783311567311,
+            "mean_corrected_dice": 0.3160136952575109,
+            "per_patch_dice": [
+              0.2346783311567311
+            ],
+            "per_patch_corrected_dice": [
+              0.3160136952575109
+            ]
+          },
+          {
+            "threshold": 0.15,
+            "mean_dice": 0.23832031330469156,
+            "mean_corrected_dice": 0.3220798659906766,
+            "per_patch_dice": [
+              0.23832031330469156
+            ],
+            "per_patch_corrected_dice": [
+              0.3220798659906766
+            ]
+          },
+          {
+            "threshold": 0.16,
+            "mean_dice": 0.24181101427137738,
+            "mean_corrected_dice": 0.3279020529499057,
+            "per_patch_dice": [
+              0.24181101427137738
+            ],
+            "per_patch_corrected_dice": [
+              0.3279020529499057
+            ]
+          },
+          {
+            "threshold": 0.17,
+            "mean_dice": 0.245141190765032,
+            "mean_corrected_dice": 0.33347859992183565,
+            "per_patch_dice": [
+              0.245141190765032
+            ],
+            "per_patch_corrected_dice": [
+              0.33347859992183565
+            ]
+          },
+          {
+            "threshold": 0.18,
+            "mean_dice": 0.2483822644259707,
+            "mean_corrected_dice": 0.338897608601619,
+            "per_patch_dice": [
+              0.2483822644259707
+            ],
+            "per_patch_corrected_dice": [
+              0.338897608601619
+            ]
+          },
+          {
+            "threshold": 0.19,
+            "mean_dice": 0.2515233137155092,
+            "mean_corrected_dice": 0.3441855793075305,
+            "per_patch_dice": [
+              0.2515233137155092
+            ],
+            "per_patch_corrected_dice": [
+              0.3441855793075305
+            ]
+          },
+          {
+            "threshold": 0.2,
+            "mean_dice": 0.2545644483722358,
+            "mean_corrected_dice": 0.3493076819135565,
+            "per_patch_dice": [
+              0.2545644483722358
+            ],
+            "per_patch_corrected_dice": [
+              0.3493076819135565
+            ]
+          },
+          {
+            "threshold": 0.21,
+            "mean_dice": 0.25751408640195345,
+            "mean_corrected_dice": 0.35425384624835987,
+            "per_patch_dice": [
+              0.25751408640195345
+            ],
+            "per_patch_corrected_dice": [
+              0.35425384624835987
+            ]
+          },
+          {
+            "threshold": 0.22,
+            "mean_dice": 0.2603312994844587,
+            "mean_corrected_dice": 0.3590264383204199,
+            "per_patch_dice": [
+              0.2603312994844587
+            ],
+            "per_patch_corrected_dice": [
+              0.3590264383204199
+            ]
+          },
+          {
+            "threshold": 0.23,
+            "mean_dice": 0.26311165434009787,
+            "mean_corrected_dice": 0.3637212874694703,
+            "per_patch_dice": [
+              0.26311165434009787
+            ],
+            "per_patch_corrected_dice": [
+              0.3637212874694703
+            ]
+          },
+          {
+            "threshold": 0.24,
+            "mean_dice": 0.2657447816549683,
+            "mean_corrected_dice": 0.3682950581581209,
+            "per_patch_dice": [
+              0.2657447816549683
+            ],
+            "per_patch_corrected_dice": [
+              0.3682950581581209
+            ]
+          },
+          {
+            "threshold": 0.25,
+            "mean_dice": 0.2683717680091734,
+            "mean_corrected_dice": 0.3727322412564109,
+            "per_patch_dice": [
+              0.2683717680091734
+            ],
+            "per_patch_corrected_dice": [
+              0.3727322412564109
+            ]
+          },
+          {
+            "threshold": 0.26,
+            "mean_dice": 0.2709398854834357,
+            "mean_corrected_dice": 0.3770826924960308,
+            "per_patch_dice": [
+              0.2709398854834357
+            ],
+            "per_patch_corrected_dice": [
+              0.3770826924960308
+            ]
+          },
+          {
+            "threshold": 0.27,
+            "mean_dice": 0.2733871281605542,
+            "mean_corrected_dice": 0.3813192755741783,
+            "per_patch_dice": [
+              0.2733871281605542
+            ],
+            "per_patch_corrected_dice": [
+              0.3813192755741783
+            ]
+          },
+          {
+            "threshold": 0.28,
+            "mean_dice": 0.27583514797111375,
+            "mean_corrected_dice": 0.3856195631994206,
+            "per_patch_dice": [
+              0.27583514797111375
+            ],
+            "per_patch_corrected_dice": [
+              0.3856195631994206
+            ]
+          },
+          {
+            "threshold": 0.29,
+            "mean_dice": 0.2782477279599261,
+            "mean_corrected_dice": 0.3898141386539775,
+            "per_patch_dice": [
+              0.2782477279599261
+            ],
+            "per_patch_corrected_dice": [
+              0.3898141386539775
+            ]
+          },
+          {
+            "threshold": 0.3,
+            "mean_dice": 0.28054786560922534,
+            "mean_corrected_dice": 0.3938696433338865,
+            "per_patch_dice": [
+              0.28054786560922534
+            ],
+            "per_patch_corrected_dice": [
+              0.3938696433338865
+            ]
+          },
+          {
+            "threshold": 0.31,
+            "mean_dice": 0.28286113581501715,
+            "mean_corrected_dice": 0.3979547930799603,
+            "per_patch_dice": [
+              0.28286113581501715
+            ],
+            "per_patch_corrected_dice": [
+              0.3979547930799603
+            ]
+          },
+          {
+            "threshold": 0.32,
+            "mean_dice": 0.28518169198035614,
+            "mean_corrected_dice": 0.40195353861503014,
+            "per_patch_dice": [
+              0.28518169198035614
+            ],
+            "per_patch_corrected_dice": [
+              0.40195353861503014
+            ]
+          },
+          {
+            "threshold": 0.33,
+            "mean_dice": 0.2874330687598869,
+            "mean_corrected_dice": 0.4058900334535796,
+            "per_patch_dice": [
+              0.2874330687598869
+            ],
+            "per_patch_corrected_dice": [
+              0.4058900334535796
+            ]
+          },
+          {
+            "threshold": 0.34,
+            "mean_dice": 0.28965788709045354,
+            "mean_corrected_dice": 0.40977409692901734,
+            "per_patch_dice": [
+              0.28965788709045354
+            ],
+            "per_patch_corrected_dice": [
+              0.40977409692901734
+            ]
+          },
+          {
+            "threshold": 0.35,
+            "mean_dice": 0.29183491752816204,
+            "mean_corrected_dice": 0.4136384825749397,
+            "per_patch_dice": [
+              0.29183491752816204
+            ],
+            "per_patch_corrected_dice": [
+              0.4136384825749397
+            ]
+          },
+          {
+            "threshold": 0.36,
+            "mean_dice": 0.2939813041487544,
+            "mean_corrected_dice": 0.4174970200794901,
+            "per_patch_dice": [
+              0.2939813041487544
+            ],
+            "per_patch_corrected_dice": [
+              0.4174970200794901
+            ]
+          },
+          {
+            "threshold": 0.37,
+            "mean_dice": 0.29609576983772945,
+            "mean_corrected_dice": 0.4212289603711424,
+            "per_patch_dice": [
+              0.29609576983772945
+            ],
+            "per_patch_corrected_dice": [
+              0.4212289603711424
+            ]
+          },
+          {
+            "threshold": 0.38,
+            "mean_dice": 0.2982105406509601,
+            "mean_corrected_dice": 0.4249689005434303,
+            "per_patch_dice": [
+              0.2982105406509601
+            ],
+            "per_patch_corrected_dice": [
+              0.4249689005434303
+            ]
+          },
+          {
+            "threshold": 0.39,
+            "mean_dice": 0.3003788712082325,
+            "mean_corrected_dice": 0.42874753490542394,
+            "per_patch_dice": [
+              0.3003788712082325
+            ],
+            "per_patch_corrected_dice": [
+              0.42874753490542394
+            ]
+          },
+          {
+            "threshold": 0.4,
+            "mean_dice": 0.3024700115845406,
+            "mean_corrected_dice": 0.43244240628245934,
+            "per_patch_dice": [
+              0.3024700115845406
+            ],
+            "per_patch_corrected_dice": [
+              0.43244240628245934
+            ]
+          },
+          {
+            "threshold": 0.41,
+            "mean_dice": 0.30462852905337967,
+            "mean_corrected_dice": 0.43615810685229206,
+            "per_patch_dice": [
+              0.30462852905337967
+            ],
+            "per_patch_corrected_dice": [
+              0.43615810685229206
+            ]
+          },
+          {
+            "threshold": 0.42,
+            "mean_dice": 0.3067343706794701,
+            "mean_corrected_dice": 0.43985895364983746,
+            "per_patch_dice": [
+              0.3067343706794701
+            ],
+            "per_patch_corrected_dice": [
+              0.43985895364983746
+            ]
+          },
+          {
+            "threshold": 0.43,
+            "mean_dice": 0.30877747519320947,
+            "mean_corrected_dice": 0.44348745758282326,
+            "per_patch_dice": [
+              0.30877747519320947
+            ],
+            "per_patch_corrected_dice": [
+              0.44348745758282326
+            ]
+          },
+          {
+            "threshold": 0.44,
+            "mean_dice": 0.3108625498747451,
+            "mean_corrected_dice": 0.4472295025372848,
+            "per_patch_dice": [
+              0.3108625498747451
+            ],
+            "per_patch_corrected_dice": [
+              0.4472295025372848
+            ]
+          },
+          {
+            "threshold": 0.45,
+            "mean_dice": 0.31294574174138484,
+            "mean_corrected_dice": 0.45089508689086844,
+            "per_patch_dice": [
+              0.31294574174138484
+            ],
+            "per_patch_corrected_dice": [
+              0.45089508689086844
+            ]
+          },
+          {
+            "threshold": 0.46,
+            "mean_dice": 0.31500634478479544,
+            "mean_corrected_dice": 0.45455520726821663,
+            "per_patch_dice": [
+              0.31500634478479544
+            ],
+            "per_patch_corrected_dice": [
+              0.45455520726821663
+            ]
+          },
+          {
+            "threshold": 0.47,
+            "mean_dice": 0.3170761702270382,
+            "mean_corrected_dice": 0.4582587395209429,
+            "per_patch_dice": [
+              0.3170761702270382
+            ],
+            "per_patch_corrected_dice": [
+              0.4582587395209429
+            ]
+          },
+          {
+            "threshold": 0.48,
+            "mean_dice": 0.31914553360685705,
+            "mean_corrected_dice": 0.46184765312375614,
+            "per_patch_dice": [
+              0.31914553360685705
+            ],
+            "per_patch_corrected_dice": [
+              0.46184765312375614
+            ]
+          },
+          {
+            "threshold": 0.49,
+            "mean_dice": 0.32118168421602344,
+            "mean_corrected_dice": 0.4654813837009842,
+            "per_patch_dice": [
+              0.32118168421602344
+            ],
+            "per_patch_corrected_dice": [
+              0.4654813837009842
+            ]
+          },
+          {
+            "threshold": 0.5,
+            "mean_dice": 0.3232509669464759,
+            "mean_corrected_dice": 0.46917975307058557,
+            "per_patch_dice": [
+              0.3232509669464759
+            ],
+            "per_patch_corrected_dice": [
+              0.46917975307058557
+            ]
+          },
+          {
+            "threshold": 0.51,
+            "mean_dice": 0.32527622378814375,
+            "mean_corrected_dice": 0.4728755468322617,
+            "per_patch_dice": [
+              0.32527622378814375
+            ],
+            "per_patch_corrected_dice": [
+              0.4728755468322617
+            ]
+          },
+          {
+            "threshold": 0.52,
+            "mean_dice": 0.3273376493818327,
+            "mean_corrected_dice": 0.4765881925816787,
+            "per_patch_dice": [
+              0.3273376493818327
+            ],
+            "per_patch_corrected_dice": [
+              0.4765881925816787
+            ]
+          },
+          {
+            "threshold": 0.53,
+            "mean_dice": 0.32935631106714564,
+            "mean_corrected_dice": 0.4802245733727758,
+            "per_patch_dice": [
+              0.32935631106714564
+            ],
+            "per_patch_corrected_dice": [
+              0.4802245733727758
+            ]
+          },
+          {
+            "threshold": 0.54,
+            "mean_dice": 0.33136247200786195,
+            "mean_corrected_dice": 0.48387301900057766,
+            "per_patch_dice": [
+              0.33136247200786195
+            ],
+            "per_patch_corrected_dice": [
+              0.48387301900057766
+            ]
+          },
+          {
+            "threshold": 0.55,
+            "mean_dice": 0.3335159587516339,
+            "mean_corrected_dice": 0.48768597474518505,
+            "per_patch_dice": [
+              0.3335159587516339
+            ],
+            "per_patch_corrected_dice": [
+              0.48768597474518505
+            ]
+          },
+          {
+            "threshold": 0.56,
+            "mean_dice": 0.33562800122724773,
+            "mean_corrected_dice": 0.4915109297405695,
+            "per_patch_dice": [
+              0.33562800122724773
+            ],
+            "per_patch_corrected_dice": [
+              0.4915109297405695
+            ]
+          },
+          {
+            "threshold": 0.57,
+            "mean_dice": 0.33773929225233945,
+            "mean_corrected_dice": 0.4952894465237401,
+            "per_patch_dice": [
+              0.33773929225233945
+            ],
+            "per_patch_corrected_dice": [
+              0.4952894465237401
+            ]
+          },
+          {
+            "threshold": 0.58,
+            "mean_dice": 0.3398681694391205,
+            "mean_corrected_dice": 0.499144093224866,
+            "per_patch_dice": [
+              0.3398681694391205
+            ],
+            "per_patch_corrected_dice": [
+              0.499144093224866
+            ]
+          },
+          {
+            "threshold": 0.59,
+            "mean_dice": 0.34201186471147177,
+            "mean_corrected_dice": 0.5030556400973174,
+            "per_patch_dice": [
+              0.34201186471147177
+            ],
+            "per_patch_corrected_dice": [
+              0.5030556400973174
+            ]
+          },
+          {
+            "threshold": 0.6,
+            "mean_dice": 0.34424023175214785,
+            "mean_corrected_dice": 0.5069667778840578,
+            "per_patch_dice": [
+              0.34424023175214785
+            ],
+            "per_patch_corrected_dice": [
+              0.5069667778840578
+            ]
+          },
+          {
+            "threshold": 0.61,
+            "mean_dice": 0.34646578485474183,
+            "mean_corrected_dice": 0.5110100871995867,
+            "per_patch_dice": [
+              0.34646578485474183
+            ],
+            "per_patch_corrected_dice": [
+              0.5110100871995867
+            ]
+          },
+          {
+            "threshold": 0.62,
+            "mean_dice": 0.34863525446660465,
+            "mean_corrected_dice": 0.5149557961010189,
+            "per_patch_dice": [
+              0.34863525446660465
+            ],
+            "per_patch_corrected_dice": [
+              0.5149557961010189
+            ]
+          },
+          {
+            "threshold": 0.63,
+            "mean_dice": 0.35093169122659335,
+            "mean_corrected_dice": 0.5191796195174528,
+            "per_patch_dice": [
+              0.35093169122659335
+            ],
+            "per_patch_corrected_dice": [
+              0.5191796195174528
+            ]
+          },
+          {
+            "threshold": 0.64,
+            "mean_dice": 0.35313405550177923,
+            "mean_corrected_dice": 0.5232307705795199,
+            "per_patch_dice": [
+              0.35313405550177923
+            ],
+            "per_patch_corrected_dice": [
+              0.5232307705795199
+            ]
+          },
+          {
+            "threshold": 0.65,
+            "mean_dice": 0.3554088006285052,
+            "mean_corrected_dice": 0.5274381496983631,
+            "per_patch_dice": [
+              0.3554088006285052
+            ],
+            "per_patch_corrected_dice": [
+              0.5274381496983631
+            ]
+          },
+          {
+            "threshold": 0.66,
+            "mean_dice": 0.3577487900988512,
+            "mean_corrected_dice": 0.5317313983227264,
+            "per_patch_dice": [
+              0.3577487900988512
+            ],
+            "per_patch_corrected_dice": [
+              0.5317313983227264
+            ]
+          },
+          {
+            "threshold": 0.67,
+            "mean_dice": 0.36018990468233536,
+            "mean_corrected_dice": 0.5361339494688832,
+            "per_patch_dice": [
+              0.36018990468233536
+            ],
+            "per_patch_corrected_dice": [
+              0.5361339494688832
+            ]
+          },
+          {
+            "threshold": 0.68,
+            "mean_dice": 0.3624431578322207,
+            "mean_corrected_dice": 0.5403930020846829,
+            "per_patch_dice": [
+              0.3624431578322207
+            ],
+            "per_patch_corrected_dice": [
+              0.5403930020846829
+            ]
+          },
+          {
+            "threshold": 0.69,
+            "mean_dice": 0.36480953072505135,
+            "mean_corrected_dice": 0.5449537173755868,
+            "per_patch_dice": [
+              0.36480953072505135
+            ],
+            "per_patch_corrected_dice": [
+              0.5449537173755868
+            ]
+          },
+          {
+            "threshold": 0.7,
+            "mean_dice": 0.36727447547571035,
+            "mean_corrected_dice": 0.5495669011334158,
+            "per_patch_dice": [
+              0.36727447547571035
+            ],
+            "per_patch_corrected_dice": [
+              0.5495669011334158
+            ]
+          },
+          {
+            "threshold": 0.71,
+            "mean_dice": 0.3698483856594888,
+            "mean_corrected_dice": 0.554268640612518,
+            "per_patch_dice": [
+              0.3698483856594888
+            ],
+            "per_patch_corrected_dice": [
+              0.554268640612518
+            ]
+          },
+          {
+            "threshold": 0.72,
+            "mean_dice": 0.3723380505810255,
+            "mean_corrected_dice": 0.558989234700289,
+            "per_patch_dice": [
+              0.3723380505810255
+            ],
+            "per_patch_corrected_dice": [
+              0.558989234700289
+            ]
+          },
+          {
+            "threshold": 0.73,
+            "mean_dice": 0.3749033994887604,
+            "mean_corrected_dice": 0.5638782542315716,
+            "per_patch_dice": [
+              0.3749033994887604
+            ],
+            "per_patch_corrected_dice": [
+              0.5638782542315716
+            ]
+          },
+          {
+            "threshold": 0.74,
+            "mean_dice": 0.377629327762159,
+            "mean_corrected_dice": 0.569020811062211,
+            "per_patch_dice": [
+              0.377629327762159
+            ],
+            "per_patch_corrected_dice": [
+              0.569020811062211
+            ]
+          },
+          {
+            "threshold": 0.75,
+            "mean_dice": 0.380460012293462,
+            "mean_corrected_dice": 0.5742834053875011,
+            "per_patch_dice": [
+              0.380460012293462
+            ],
+            "per_patch_corrected_dice": [
+              0.5742834053875011
+            ]
+          },
+          {
+            "threshold": 0.76,
+            "mean_dice": 0.38331705931592674,
+            "mean_corrected_dice": 0.5796995571974228,
+            "per_patch_dice": [
+              0.38331705931592674
+            ],
+            "per_patch_corrected_dice": [
+              0.5796995571974228
+            ]
+          },
+          {
+            "threshold": 0.77,
+            "mean_dice": 0.3861926226724671,
+            "mean_corrected_dice": 0.5851475645756864,
+            "per_patch_dice": [
+              0.3861926226724671
+            ],
+            "per_patch_corrected_dice": [
+              0.5851475645756864
+            ]
+          },
+          {
+            "threshold": 0.78,
+            "mean_dice": 0.38927204453523817,
+            "mean_corrected_dice": 0.5907595722094307,
+            "per_patch_dice": [
+              0.38927204453523817
+            ],
+            "per_patch_corrected_dice": [
+              0.5907595722094307
+            ]
+          },
+          {
+            "threshold": 0.79,
+            "mean_dice": 0.392419439314166,
+            "mean_corrected_dice": 0.5967800440231876,
+            "per_patch_dice": [
+              0.392419439314166
+            ],
+            "per_patch_corrected_dice": [
+              0.5967800440231876
+            ]
+          },
+          {
+            "threshold": 0.8,
+            "mean_dice": 0.3956472886468644,
+            "mean_corrected_dice": 0.6028746955906368,
+            "per_patch_dice": [
+              0.3956472886468644
+            ],
+            "per_patch_corrected_dice": [
+              0.6028746955906368
+            ]
+          },
+          {
+            "threshold": 0.81,
+            "mean_dice": 0.39895576784867154,
+            "mean_corrected_dice": 0.6092275754692501,
+            "per_patch_dice": [
+              0.39895576784867154
+            ],
+            "per_patch_corrected_dice": [
+              0.6092275754692501
+            ]
+          },
+          {
+            "threshold": 0.82,
+            "mean_dice": 0.40236779794790845,
+            "mean_corrected_dice": 0.6159122517542293,
+            "per_patch_dice": [
+              0.40236779794790845
+            ],
+            "per_patch_corrected_dice": [
+              0.6159122517542293
+            ]
+          },
+          {
+            "threshold": 0.83,
+            "mean_dice": 0.4059064717288254,
+            "mean_corrected_dice": 0.6228628738492398,
+            "per_patch_dice": [
+              0.4059064717288254
+            ],
+            "per_patch_corrected_dice": [
+              0.6228628738492398
+            ]
+          },
+          {
+            "threshold": 0.84,
+            "mean_dice": 0.4094126413754148,
+            "mean_corrected_dice": 0.6298765272294494,
+            "per_patch_dice": [
+              0.4094126413754148
+            ],
+            "per_patch_corrected_dice": [
+              0.6298765272294494
+            ]
+          },
+          {
+            "threshold": 0.85,
+            "mean_dice": 0.4133448116933085,
+            "mean_corrected_dice": 0.637449569632501,
+            "per_patch_dice": [
+              0.4133448116933085
+            ],
+            "per_patch_corrected_dice": [
+              0.637449569632501
+            ]
+          },
+          {
+            "threshold": 0.86,
+            "mean_dice": 0.41736304501595395,
+            "mean_corrected_dice": 0.6452066504094524,
+            "per_patch_dice": [
+              0.41736304501595395
+            ],
+            "per_patch_corrected_dice": [
+              0.6452066504094524
+            ]
+          },
+          {
+            "threshold": 0.87,
+            "mean_dice": 0.42173936040791715,
+            "mean_corrected_dice": 0.6537444492462249,
+            "per_patch_dice": [
+              0.42173936040791715
+            ],
+            "per_patch_corrected_dice": [
+              0.6537444492462249
+            ]
+          },
+          {
+            "threshold": 0.88,
+            "mean_dice": 0.42630099396436616,
+            "mean_corrected_dice": 0.6627397912484231,
+            "per_patch_dice": [
+              0.42630099396436616
+            ],
+            "per_patch_corrected_dice": [
+              0.6627397912484231
+            ]
+          },
+          {
+            "threshold": 0.89,
+            "mean_dice": 0.43094657798850794,
+            "mean_corrected_dice": 0.6722225099704771,
+            "per_patch_dice": [
+              0.43094657798850794
+            ],
+            "per_patch_corrected_dice": [
+              0.6722225099704771
+            ]
+          },
+          {
+            "threshold": 0.9,
+            "mean_dice": 0.4360184283509587,
+            "mean_corrected_dice": 0.6824533915740829,
+            "per_patch_dice": [
+              0.4360184283509587
+            ],
+            "per_patch_corrected_dice": [
+              0.6824533915740829
+            ]
+          },
+          {
+            "threshold": 0.91,
+            "mean_dice": 0.4413827073621251,
+            "mean_corrected_dice": 0.6931348599961259,
+            "per_patch_dice": [
+              0.4413827073621251
+            ],
+            "per_patch_corrected_dice": [
+              0.6931348599961259
+            ]
+          },
+          {
+            "threshold": 0.92,
+            "mean_dice": 0.4469544884570418,
+            "mean_corrected_dice": 0.7046075601374571,
+            "per_patch_dice": [
+              0.4469544884570418
+            ],
+            "per_patch_corrected_dice": [
+              0.7046075601374571
+            ]
+          },
+          {
+            "threshold": 0.93,
+            "mean_dice": 0.4527284355645912,
+            "mean_corrected_dice": 0.7170420586334991,
+            "per_patch_dice": [
+              0.4527284355645912
+            ],
+            "per_patch_corrected_dice": [
+              0.7170420586334991
+            ]
+          },
+          {
+            "threshold": 0.94,
+            "mean_dice": 0.45908402849223146,
+            "mean_corrected_dice": 0.7310558925420245,
+            "per_patch_dice": [
+              0.45908402849223146
+            ],
+            "per_patch_corrected_dice": [
+              0.7310558925420245
+            ]
+          },
+          {
+            "threshold": 0.95,
+            "mean_dice": 0.4653685016048139,
+            "mean_corrected_dice": 0.7461172449113279,
+            "per_patch_dice": [
+              0.4653685016048139
+            ],
+            "per_patch_corrected_dice": [
+              0.7461172449113279
+            ]
+          }
+        ]
+      },
+      "threeclass": {
+        "method": "threeclass",
+        "selected_threshold": 0.94,
+        "selection_metric": "mean_corrected_dice",
+        "best_calibration_result": {
+          "threshold": 0.94,
+          "mean_dice": 0.4911209864571338,
+          "mean_corrected_dice": 0.8395666999409727,
+          "per_patch_dice": [
+            0.4911209864571338
+          ],
+          "per_patch_corrected_dice": [
+            0.8395666999409727
+          ]
+        },
+        "evaluations": [
+          {
+            "threshold": 0.05,
+            "mean_dice": 0.1600949810426161,
+            "mean_corrected_dice": 0.1966982203008947,
+            "per_patch_dice": [
+              0.1600949810426161
+            ],
+            "per_patch_corrected_dice": [
+              0.1966982203008947
+            ]
+          },
+          {
+            "threshold": 0.06,
+            "mean_dice": 0.17073289929156157,
+            "mean_corrected_dice": 0.21225705988934732,
+            "per_patch_dice": [
+              0.17073289929156157
+            ],
+            "per_patch_corrected_dice": [
+              0.21225705988934732
+            ]
+          },
+          {
+            "threshold": 0.07,
+            "mean_dice": 0.18051423428084812,
+            "mean_corrected_dice": 0.2267849136388504,
+            "per_patch_dice": [
+              0.18051423428084812
+            ],
+            "per_patch_corrected_dice": [
+              0.2267849136388504
+            ]
+          },
+          {
+            "threshold": 0.08,
+            "mean_dice": 0.18957102564639886,
+            "mean_corrected_dice": 0.24048928638607067,
+            "per_patch_dice": [
+              0.18957102564639886
+            ],
+            "per_patch_corrected_dice": [
+              0.24048928638607067
+            ]
+          },
+          {
+            "threshold": 0.09,
+            "mean_dice": 0.19801832697455946,
+            "mean_corrected_dice": 0.2534519356470018,
+            "per_patch_dice": [
+              0.19801832697455946
+            ],
+            "per_patch_corrected_dice": [
+              0.2534519356470018
+            ]
+          },
+          {
+            "threshold": 0.1,
+            "mean_dice": 0.20600987892272218,
+            "mean_corrected_dice": 0.26588919311766895,
+            "per_patch_dice": [
+              0.20600987892272218
+            ],
+            "per_patch_corrected_dice": [
+              0.26588919311766895
+            ]
+          },
+          {
+            "threshold": 0.11,
+            "mean_dice": 0.2135967116556076,
+            "mean_corrected_dice": 0.27773230069514326,
+            "per_patch_dice": [
+              0.2135967116556076
+            ],
+            "per_patch_corrected_dice": [
+              0.27773230069514326
+            ]
+          },
+          {
+            "threshold": 0.12,
+            "mean_dice": 0.22085126520753803,
+            "mean_corrected_dice": 0.28921085829040244,
+            "per_patch_dice": [
+              0.22085126520753803
+            ],
+            "per_patch_corrected_dice": [
+              0.28921085829040244
+            ]
+          },
+          {
+            "threshold": 0.13,
+            "mean_dice": 0.22770791406415644,
+            "mean_corrected_dice": 0.30016109390955803,
+            "per_patch_dice": [
+              0.22770791406415644
+            ],
+            "per_patch_corrected_dice": [
+              0.30016109390955803
+            ]
+          },
+          {
+            "threshold": 0.14,
+            "mean_dice": 0.23439866761426859,
+            "mean_corrected_dice": 0.3108403436478232,
+            "per_patch_dice": [
+              0.23439866761426859
+            ],
+            "per_patch_corrected_dice": [
+              0.3108403436478232
+            ]
+          },
+          {
+            "threshold": 0.15,
+            "mean_dice": 0.24085815993872137,
+            "mean_corrected_dice": 0.32123783560164143,
+            "per_patch_dice": [
+              0.24085815993872137
+            ],
+            "per_patch_corrected_dice": [
+              0.32123783560164143
+            ]
+          },
+          {
+            "threshold": 0.16,
+            "mean_dice": 0.24710786099069953,
+            "mean_corrected_dice": 0.33139732236153074,
+            "per_patch_dice": [
+              0.24710786099069953
+            ],
+            "per_patch_corrected_dice": [
+              0.33139732236153074
+            ]
+          },
+          {
+            "threshold": 0.17,
+            "mean_dice": 0.25306984568470414,
+            "mean_corrected_dice": 0.3412316082804034,
+            "per_patch_dice": [
+              0.25306984568470414
+            ],
+            "per_patch_corrected_dice": [
+              0.3412316082804034
+            ]
+          },
+          {
+            "threshold": 0.18,
+            "mean_dice": 0.258857649675419,
+            "mean_corrected_dice": 0.3507749482663964,
+            "per_patch_dice": [
+              0.258857649675419
+            ],
+            "per_patch_corrected_dice": [
+              0.3507749482663964
+            ]
+          },
+          {
+            "threshold": 0.19,
+            "mean_dice": 0.2645009213711814,
+            "mean_corrected_dice": 0.3601176705644822,
+            "per_patch_dice": [
+              0.2645009213711814
+            ],
+            "per_patch_corrected_dice": [
+              0.3601176705644822
+            ]
+          },
+          {
+            "threshold": 0.2,
+            "mean_dice": 0.26994506160158865,
+            "mean_corrected_dice": 0.36921892444353355,
+            "per_patch_dice": [
+              0.26994506160158865
+            ],
+            "per_patch_corrected_dice": [
+              0.36921892444353355
+            ]
+          },
+          {
+            "threshold": 0.21,
+            "mean_dice": 0.27514451489863756,
+            "mean_corrected_dice": 0.3780908697222715,
+            "per_patch_dice": [
+              0.27514451489863756
+            ],
+            "per_patch_corrected_dice": [
+              0.3780908697222715
+            ]
+          },
+          {
+            "threshold": 0.22,
+            "mean_dice": 0.28030052767426905,
+            "mean_corrected_dice": 0.3867827159027607,
+            "per_patch_dice": [
+              0.28030052767426905
+            ],
+            "per_patch_corrected_dice": [
+              0.3867827159027607
+            ]
+          },
+          {
+            "threshold": 0.23,
+            "mean_dice": 0.2853753616327981,
+            "mean_corrected_dice": 0.3953231338617397,
+            "per_patch_dice": [
+              0.2853753616327981
+            ],
+            "per_patch_corrected_dice": [
+              0.3953231338617397
+            ]
+          },
+          {
+            "threshold": 0.24,
+            "mean_dice": 0.29026065020010083,
+            "mean_corrected_dice": 0.4035982845902569,
+            "per_patch_dice": [
+              0.29026065020010083
+            ],
+            "per_patch_corrected_dice": [
+              0.4035982845902569
+            ]
+          },
+          {
+            "threshold": 0.25,
+            "mean_dice": 0.2950456062525663,
+            "mean_corrected_dice": 0.41178984563967314,
+            "per_patch_dice": [
+              0.2950456062525663
+            ],
+            "per_patch_corrected_dice": [
+              0.41178984563967314
+            ]
+          },
+          {
+            "threshold": 0.26,
+            "mean_dice": 0.29972954751516934,
+            "mean_corrected_dice": 0.4197673426302999,
+            "per_patch_dice": [
+              0.29972954751516934
+            ],
+            "per_patch_corrected_dice": [
+              0.4197673426302999
+            ]
+          },
+          {
+            "threshold": 0.27,
+            "mean_dice": 0.3043437079924664,
+            "mean_corrected_dice": 0.4277058814770347,
+            "per_patch_dice": [
+              0.3043437079924664
+            ],
+            "per_patch_corrected_dice": [
+              0.4277058814770347
+            ]
+          },
+          {
+            "threshold": 0.28,
+            "mean_dice": 0.3088121047235096,
+            "mean_corrected_dice": 0.4354256857136699,
+            "per_patch_dice": [
+              0.3088121047235096
+            ],
+            "per_patch_corrected_dice": [
+              0.4354256857136699
+            ]
+          },
+          {
+            "threshold": 0.29,
+            "mean_dice": 0.3131495732756696,
+            "mean_corrected_dice": 0.44294894088661946,
+            "per_patch_dice": [
+              0.3131495732756696
+            ],
+            "per_patch_corrected_dice": [
+              0.44294894088661946
+            ]
+          },
+          {
+            "threshold": 0.3,
+            "mean_dice": 0.3174644787499129,
+            "mean_corrected_dice": 0.4503772557014096,
+            "per_patch_dice": [
+              0.3174644787499129
+            ],
+            "per_patch_corrected_dice": [
+              0.4503772557014096
+            ]
+          },
+          {
+            "threshold": 0.31,
+            "mean_dice": 0.32172256231339136,
+            "mean_corrected_dice": 0.4577292858367886,
+            "per_patch_dice": [
+              0.32172256231339136
+            ],
+            "per_patch_corrected_dice": [
+              0.4577292858367886
+            ]
+          },
+          {
+            "threshold": 0.32,
+            "mean_dice": 0.325896301698534,
+            "mean_corrected_dice": 0.465035831543038,
+            "per_patch_dice": [
+              0.325896301698534
+            ],
+            "per_patch_corrected_dice": [
+              0.465035831543038
+            ]
+          },
+          {
+            "threshold": 0.33,
+            "mean_dice": 0.3300211002179819,
+            "mean_corrected_dice": 0.4721987082815665,
+            "per_patch_dice": [
+              0.3300211002179819
+            ],
+            "per_patch_corrected_dice": [
+              0.4721987082815665
+            ]
+          },
+          {
+            "threshold": 0.34,
+            "mean_dice": 0.33401851629717677,
+            "mean_corrected_dice": 0.4792204666302833,
+            "per_patch_dice": [
+              0.33401851629717677
+            ],
+            "per_patch_corrected_dice": [
+              0.4792204666302833
+            ]
+          },
+          {
+            "threshold": 0.35,
+            "mean_dice": 0.3380287927899001,
+            "mean_corrected_dice": 0.4861734757350026,
+            "per_patch_dice": [
+              0.3380287927899001
+            ],
+            "per_patch_corrected_dice": [
+              0.4861734757350026
+            ]
+          },
+          {
+            "threshold": 0.36,
+            "mean_dice": 0.3419296800439895,
+            "mean_corrected_dice": 0.49296726167234795,
+            "per_patch_dice": [
+              0.3419296800439895
+            ],
+            "per_patch_corrected_dice": [
+              0.49296726167234795
+            ]
+          },
+          {
+            "threshold": 0.37,
+            "mean_dice": 0.3457665858239262,
+            "mean_corrected_dice": 0.4995786512973396,
+            "per_patch_dice": [
+              0.3457665858239262
+            ],
+            "per_patch_corrected_dice": [
+              0.4995786512973396
+            ]
+          },
+          {
+            "threshold": 0.38,
+            "mean_dice": 0.34958216666208913,
+            "mean_corrected_dice": 0.5062525855942595,
+            "per_patch_dice": [
+              0.34958216666208913
+            ],
+            "per_patch_corrected_dice": [
+              0.5062525855942595
+            ]
+          },
+          {
+            "threshold": 0.39,
+            "mean_dice": 0.35334806276673886,
+            "mean_corrected_dice": 0.5128871151567014,
+            "per_patch_dice": [
+              0.35334806276673886
+            ],
+            "per_patch_corrected_dice": [
+              0.5128871151567014
+            ]
+          },
+          {
+            "threshold": 0.4,
+            "mean_dice": 0.3569674918515931,
+            "mean_corrected_dice": 0.5194088892981568,
+            "per_patch_dice": [
+              0.3569674918515931
+            ],
+            "per_patch_corrected_dice": [
+              0.5194088892981568
+            ]
+          },
+          {
+            "threshold": 0.41,
+            "mean_dice": 0.36059132455706044,
+            "mean_corrected_dice": 0.525822846314562,
+            "per_patch_dice": [
+              0.36059132455706044
+            ],
+            "per_patch_corrected_dice": [
+              0.525822846314562
+            ]
+          },
+          {
+            "threshold": 0.42,
+            "mean_dice": 0.3642297660101814,
+            "mean_corrected_dice": 0.5322152558335441,
+            "per_patch_dice": [
+              0.3642297660101814
+            ],
+            "per_patch_corrected_dice": [
+              0.5322152558335441
+            ]
+          },
+          {
+            "threshold": 0.43,
+            "mean_dice": 0.3678156115321742,
+            "mean_corrected_dice": 0.538466903815303,
+            "per_patch_dice": [
+              0.3678156115321742
+            ],
+            "per_patch_corrected_dice": [
+              0.538466903815303
+            ]
+          },
+          {
+            "threshold": 0.44,
+            "mean_dice": 0.37132114530363564,
+            "mean_corrected_dice": 0.5445971417247476,
+            "per_patch_dice": [
+              0.37132114530363564
+            ],
+            "per_patch_corrected_dice": [
+              0.5445971417247476
+            ]
+          },
+          {
+            "threshold": 0.45,
+            "mean_dice": 0.3748199615653195,
+            "mean_corrected_dice": 0.5507643353053616,
+            "per_patch_dice": [
+              0.3748199615653195
+            ],
+            "per_patch_corrected_dice": [
+              0.5507643353053616
+            ]
+          },
+          {
+            "threshold": 0.46,
+            "mean_dice": 0.37834640060462793,
+            "mean_corrected_dice": 0.5569205856777864,
+            "per_patch_dice": [
+              0.37834640060462793
+            ],
+            "per_patch_corrected_dice": [
+              0.5569205856777864
+            ]
+          },
+          {
+            "threshold": 0.47,
+            "mean_dice": 0.38189906502424087,
+            "mean_corrected_dice": 0.5630981526819497,
+            "per_patch_dice": [
+              0.38189906502424087
+            ],
+            "per_patch_corrected_dice": [
+              0.5630981526819497
+            ]
+          },
+          {
+            "threshold": 0.48,
+            "mean_dice": 0.38538596843447176,
+            "mean_corrected_dice": 0.5692696066201811,
+            "per_patch_dice": [
+              0.38538596843447176
+            ],
+            "per_patch_corrected_dice": [
+              0.5692696066201811
+            ]
+          },
+          {
+            "threshold": 0.49,
+            "mean_dice": 0.3888593644993719,
+            "mean_corrected_dice": 0.5754157029927621,
+            "per_patch_dice": [
+              0.3888593644993719
+            ],
+            "per_patch_corrected_dice": [
+              0.5754157029927621
+            ]
+          },
+          {
+            "threshold": 0.5,
+            "mean_dice": 0.3922927121246419,
+            "mean_corrected_dice": 0.5813217865628207,
+            "per_patch_dice": [
+              0.3922927121246419
+            ],
+            "per_patch_corrected_dice": [
+              0.5813217865628207
+            ]
+          },
+          {
+            "threshold": 0.51,
+            "mean_dice": 0.39573393786387756,
+            "mean_corrected_dice": 0.5874360951178037,
+            "per_patch_dice": [
+              0.39573393786387756
+            ],
+            "per_patch_corrected_dice": [
+              0.5874360951178037
+            ]
+          },
+          {
+            "threshold": 0.52,
+            "mean_dice": 0.3991651484253047,
+            "mean_corrected_dice": 0.593416215678362,
+            "per_patch_dice": [
+              0.3991651484253047
+            ],
+            "per_patch_corrected_dice": [
+              0.593416215678362
+            ]
+          },
+          {
+            "threshold": 0.53,
+            "mean_dice": 0.4026605648415798,
+            "mean_corrected_dice": 0.5995068473551728,
+            "per_patch_dice": [
+              0.4026605648415798
+            ],
+            "per_patch_corrected_dice": [
+              0.5995068473551728
+            ]
+          },
+          {
+            "threshold": 0.54,
+            "mean_dice": 0.4060410855900735,
+            "mean_corrected_dice": 0.6054387873734447,
+            "per_patch_dice": [
+              0.4060410855900735
+            ],
+            "per_patch_corrected_dice": [
+              0.6054387873734447
+            ]
+          },
+          {
+            "threshold": 0.55,
+            "mean_dice": 0.4094357862402313,
+            "mean_corrected_dice": 0.6113753438673702,
+            "per_patch_dice": [
+              0.4094357862402313
+            ],
+            "per_patch_corrected_dice": [
+              0.6113753438673702
+            ]
+          },
+          {
+            "threshold": 0.56,
+            "mean_dice": 0.41281964483399053,
+            "mean_corrected_dice": 0.6172799900295766,
+            "per_patch_dice": [
+              0.41281964483399053
+            ],
+            "per_patch_corrected_dice": [
+              0.6172799900295766
+            ]
+          },
+          {
+            "threshold": 0.57,
+            "mean_dice": 0.4162141974776638,
+            "mean_corrected_dice": 0.6232239509896192,
+            "per_patch_dice": [
+              0.4162141974776638
+            ],
+            "per_patch_corrected_dice": [
+              0.6232239509896192
+            ]
+          },
+          {
+            "threshold": 0.58,
+            "mean_dice": 0.41950011871547044,
+            "mean_corrected_dice": 0.6290513179706563,
+            "per_patch_dice": [
+              0.41950011871547044
+            ],
+            "per_patch_corrected_dice": [
+              0.6290513179706563
+            ]
+          },
+          {
+            "threshold": 0.59,
+            "mean_dice": 0.42277074906480944,
+            "mean_corrected_dice": 0.6348527715653146,
+            "per_patch_dice": [
+              0.42277074906480944
+            ],
+            "per_patch_corrected_dice": [
+              0.6348527715653146
+            ]
+          },
+          {
+            "threshold": 0.6,
+            "mean_dice": 0.42590265093262863,
+            "mean_corrected_dice": 0.6405024642384902,
+            "per_patch_dice": [
+              0.42590265093262863
+            ],
+            "per_patch_corrected_dice": [
+              0.6405024642384902
+            ]
+          },
+          {
+            "threshold": 0.61,
+            "mean_dice": 0.4291988764713166,
+            "mean_corrected_dice": 0.6463815250167896,
+            "per_patch_dice": [
+              0.4291988764713166
+            ],
+            "per_patch_corrected_dice": [
+              0.6463815250167896
+            ]
+          },
+          {
+            "threshold": 0.62,
+            "mean_dice": 0.43258021344158504,
+            "mean_corrected_dice": 0.6522293337455481,
+            "per_patch_dice": [
+              0.43258021344158504
+            ],
+            "per_patch_corrected_dice": [
+              0.6522293337455481
+            ]
+          },
+          {
+            "threshold": 0.63,
+            "mean_dice": 0.435906494671093,
+            "mean_corrected_dice": 0.658095175530471,
+            "per_patch_dice": [
+              0.435906494671093
+            ],
+            "per_patch_corrected_dice": [
+              0.658095175530471
+            ]
+          },
+          {
+            "threshold": 0.64,
+            "mean_dice": 0.4393674500864006,
+            "mean_corrected_dice": 0.6639862766703396,
+            "per_patch_dice": [
+              0.4393674500864006
+            ],
+            "per_patch_corrected_dice": [
+              0.6639862766703396
+            ]
+          },
+          {
+            "threshold": 0.65,
+            "mean_dice": 0.44280019607661786,
+            "mean_corrected_dice": 0.6698089107533545,
+            "per_patch_dice": [
+              0.44280019607661786
+            ],
+            "per_patch_corrected_dice": [
+              0.6698089107533545
+            ]
+          },
+          {
+            "threshold": 0.66,
+            "mean_dice": 0.44617097668973144,
+            "mean_corrected_dice": 0.6756634200862207,
+            "per_patch_dice": [
+              0.44617097668973144
+            ],
+            "per_patch_corrected_dice": [
+              0.6756634200862207
+            ]
+          },
+          {
+            "threshold": 0.67,
+            "mean_dice": 0.4494021700693413,
+            "mean_corrected_dice": 0.6814386351000442,
+            "per_patch_dice": [
+              0.4494021700693413
+            ],
+            "per_patch_corrected_dice": [
+              0.6814386351000442
+            ]
+          },
+          {
+            "threshold": 0.68,
+            "mean_dice": 0.45273096766115645,
+            "mean_corrected_dice": 0.6872564640038978,
+            "per_patch_dice": [
+              0.45273096766115645
+            ],
+            "per_patch_corrected_dice": [
+              0.6872564640038978
+            ]
+          },
+          {
+            "threshold": 0.69,
+            "mean_dice": 0.45609903021159515,
+            "mean_corrected_dice": 0.6933133987349602,
+            "per_patch_dice": [
+              0.45609903021159515
+            ],
+            "per_patch_corrected_dice": [
+              0.6933133987349602
+            ]
+          },
+          {
+            "threshold": 0.7,
+            "mean_dice": 0.45941807381574357,
+            "mean_corrected_dice": 0.6991914226733962,
+            "per_patch_dice": [
+              0.45941807381574357
+            ],
+            "per_patch_corrected_dice": [
+              0.6991914226733962
+            ]
+          },
+          {
+            "threshold": 0.71,
+            "mean_dice": 0.4626449074234374,
+            "mean_corrected_dice": 0.7050661109417737,
+            "per_patch_dice": [
+              0.4626449074234374
+            ],
+            "per_patch_corrected_dice": [
+              0.7050661109417737
+            ]
+          },
+          {
+            "threshold": 0.72,
+            "mean_dice": 0.4659355704454579,
+            "mean_corrected_dice": 0.7110155699018066,
+            "per_patch_dice": [
+              0.4659355704454579
+            ],
+            "per_patch_corrected_dice": [
+              0.7110155699018066
+            ]
+          },
+          {
+            "threshold": 0.73,
+            "mean_dice": 0.4691288153296477,
+            "mean_corrected_dice": 0.716727654834825,
+            "per_patch_dice": [
+              0.4691288153296477
+            ],
+            "per_patch_corrected_dice": [
+              0.716727654834825
+            ]
+          },
+          {
+            "threshold": 0.74,
+            "mean_dice": 0.4725078506456273,
+            "mean_corrected_dice": 0.7227580937828287,
+            "per_patch_dice": [
+              0.4725078506456273
+            ],
+            "per_patch_corrected_dice": [
+              0.7227580937828287
+            ]
+          },
+          {
+            "threshold": 0.75,
+            "mean_dice": 0.47576043316075695,
+            "mean_corrected_dice": 0.7285565080248372,
+            "per_patch_dice": [
+              0.47576043316075695
+            ],
+            "per_patch_corrected_dice": [
+              0.7285565080248372
+            ]
+          },
+          {
+            "threshold": 0.76,
+            "mean_dice": 0.4791337922986883,
+            "mean_corrected_dice": 0.7347984550790055,
+            "per_patch_dice": [
+              0.4791337922986883
+            ],
+            "per_patch_corrected_dice": [
+              0.7347984550790055
+            ]
+          },
+          {
+            "threshold": 0.77,
+            "mean_dice": 0.48221929818113207,
+            "mean_corrected_dice": 0.74091506254641,
+            "per_patch_dice": [
+              0.48221929818113207
+            ],
+            "per_patch_corrected_dice": [
+              0.74091506254641
+            ]
+          },
+          {
+            "threshold": 0.78,
+            "mean_dice": 0.48564500291585877,
+            "mean_corrected_dice": 0.7471146421896535,
+            "per_patch_dice": [
+              0.48564500291585877
+            ],
+            "per_patch_corrected_dice": [
+              0.7471146421896535
+            ]
+          },
+          {
+            "threshold": 0.79,
+            "mean_dice": 0.4887473993693827,
+            "mean_corrected_dice": 0.7530662341583372,
+            "per_patch_dice": [
+              0.4887473993693827
+            ],
+            "per_patch_corrected_dice": [
+              0.7530662341583372
+            ]
+          },
+          {
+            "threshold": 0.8,
+            "mean_dice": 0.49188718101005147,
+            "mean_corrected_dice": 0.7593084969113,
+            "per_patch_dice": [
+              0.49188718101005147
+            ],
+            "per_patch_corrected_dice": [
+              0.7593084969113
+            ]
+          },
+          {
+            "threshold": 0.81,
+            "mean_dice": 0.49494084385487835,
+            "mean_corrected_dice": 0.7655515092949664,
+            "per_patch_dice": [
+              0.49494084385487835
+            ],
+            "per_patch_corrected_dice": [
+              0.7655515092949664
+            ]
+          },
+          {
+            "threshold": 0.82,
+            "mean_dice": 0.4978665278344318,
+            "mean_corrected_dice": 0.7719288719148442,
+            "per_patch_dice": [
+              0.4978665278344318
+            ],
+            "per_patch_corrected_dice": [
+              0.7719288719148442
+            ]
+          },
+          {
+            "threshold": 0.83,
+            "mean_dice": 0.5005950726070754,
+            "mean_corrected_dice": 0.7780739646640737,
+            "per_patch_dice": [
+              0.5005950726070754
+            ],
+            "per_patch_corrected_dice": [
+              0.7780739646640737
+            ]
+          },
+          {
+            "threshold": 0.84,
+            "mean_dice": 0.5031580802788903,
+            "mean_corrected_dice": 0.7842007334491411,
+            "per_patch_dice": [
+              0.5031580802788903
+            ],
+            "per_patch_corrected_dice": [
+              0.7842007334491411
+            ]
+          },
+          {
+            "threshold": 0.85,
+            "mean_dice": 0.5057608764087389,
+            "mean_corrected_dice": 0.7907478450095204,
+            "per_patch_dice": [
+              0.5057608764087389
+            ],
+            "per_patch_corrected_dice": [
+              0.7907478450095204
+            ]
+          },
+          {
+            "threshold": 0.86,
+            "mean_dice": 0.5081308977044672,
+            "mean_corrected_dice": 0.7972317835078642,
+            "per_patch_dice": [
+              0.5081308977044672
+            ],
+            "per_patch_corrected_dice": [
+              0.7972317835078642
+            ]
+          },
+          {
+            "threshold": 0.87,
+            "mean_dice": 0.5100631587809649,
+            "mean_corrected_dice": 0.803678472147588,
+            "per_patch_dice": [
+              0.5100631587809649
+            ],
+            "per_patch_corrected_dice": [
+              0.803678472147588
+            ]
+          },
+          {
+            "threshold": 0.88,
+            "mean_dice": 0.5112473805564656,
+            "mean_corrected_dice": 0.8098539338995616,
+            "per_patch_dice": [
+              0.5112473805564656
+            ],
+            "per_patch_corrected_dice": [
+              0.8098539338995616
+            ]
+          },
+          {
+            "threshold": 0.89,
+            "mean_dice": 0.5118093567605165,
+            "mean_corrected_dice": 0.8159806375240299,
+            "per_patch_dice": [
+              0.5118093567605165
+            ],
+            "per_patch_corrected_dice": [
+              0.8159806375240299
+            ]
+          },
+          {
+            "threshold": 0.9,
+            "mean_dice": 0.511316048647911,
+            "mean_corrected_dice": 0.8218695534977323,
+            "per_patch_dice": [
+              0.511316048647911
+            ],
+            "per_patch_corrected_dice": [
+              0.8218695534977323
+            ]
+          },
+          {
+            "threshold": 0.91,
+            "mean_dice": 0.51000351000351,
+            "mean_corrected_dice": 0.8275788163011196,
+            "per_patch_dice": [
+              0.51000351000351
+            ],
+            "per_patch_corrected_dice": [
+              0.8275788163011196
+            ]
+          },
+          {
+            "threshold": 0.92,
+            "mean_dice": 0.506891341665839,
+            "mean_corrected_dice": 0.8329192686376723,
+            "per_patch_dice": [
+              0.506891341665839
+            ],
+            "per_patch_corrected_dice": [
+              0.8329192686376723
+            ]
+          },
+          {
+            "threshold": 0.93,
+            "mean_dice": 0.5011958060512054,
+            "mean_corrected_dice": 0.83691717666835,
+            "per_patch_dice": [
+              0.5011958060512054
+            ],
+            "per_patch_corrected_dice": [
+              0.83691717666835
+            ]
+          },
+          {
+            "threshold": 0.94,
+            "mean_dice": 0.4911209864571338,
+            "mean_corrected_dice": 0.8395666999409727,
+            "per_patch_dice": [
+              0.4911209864571338
+            ],
+            "per_patch_corrected_dice": [
+              0.8395666999409727
+            ]
+          },
+          {
+            "threshold": 0.95,
+            "mean_dice": 0.4752205562821374,
+            "mean_corrected_dice": 0.839472089795873,
+            "per_patch_dice": [
+              0.4752205562821374
+            ],
+            "per_patch_corrected_dice": [
+              0.839472089795873
+            ]
+          }
+        ]
+      },
+      "fixed_threshold_baseline": {
+        "method": "fixed_threshold_baseline",
+        "selected_threshold": 0.47,
+        "selection_metric": "mean_corrected_dice",
+        "best_calibration_result": {
+          "threshold": 0.47,
+          "mean_dice": 0.5754695993173087,
+          "mean_corrected_dice": 0.8597262506534896,
+          "per_patch_dice": [
+            0.5754695993173087
+          ],
+          "per_patch_corrected_dice": [
+            0.8597262506534896
+          ]
+        },
+        "evaluations": [
+          {
+            "threshold": 0.05,
+            "mean_dice": 0.08861474194744526,
+            "mean_corrected_dice": 0.09987040578207917,
+            "per_patch_dice": [
+              0.08861474194744526
+            ],
+            "per_patch_corrected_dice": [
+              0.09987040578207917
+            ]
+          },
+          {
+            "threshold": 0.06,
+            "mean_dice": 0.08996200618405659,
+            "mean_corrected_dice": 0.10158317813329192,
+            "per_patch_dice": [
+              0.08996200618405659
+            ],
+            "per_patch_corrected_dice": [
+              0.10158317813329192
+            ]
+          },
+          {
+            "threshold": 0.07,
+            "mean_dice": 0.09165841854004349,
+            "mean_corrected_dice": 0.10374933872318863,
+            "per_patch_dice": [
+              0.09165841854004349
+            ],
+            "per_patch_corrected_dice": [
+              0.10374933872318863
+            ]
+          },
+          {
+            "threshold": 0.08,
+            "mean_dice": 0.09378601169803215,
+            "mean_corrected_dice": 0.10648365838462573,
+            "per_patch_dice": [
+              0.09378601169803215
+            ],
+            "per_patch_corrected_dice": [
+              0.10648365838462573
+            ]
+          },
+          {
+            "threshold": 0.09,
+            "mean_dice": 0.09642590843738466,
+            "mean_corrected_dice": 0.10989685065443926,
+            "per_patch_dice": [
+              0.09642590843738466
+            ],
+            "per_patch_corrected_dice": [
+              0.10989685065443926
+            ]
+          },
+          {
+            "threshold": 0.1,
+            "mean_dice": 0.09968912944527317,
+            "mean_corrected_dice": 0.11414815875490492,
+            "per_patch_dice": [
+              0.09968912944527317
+            ],
+            "per_patch_corrected_dice": [
+              0.11414815875490492
+            ]
+          },
+          {
+            "threshold": 0.11,
+            "mean_dice": 0.1036304471703206,
+            "mean_corrected_dice": 0.119330773388829,
+            "per_patch_dice": [
+              0.1036304471703206
+            ],
+            "per_patch_corrected_dice": [
+              0.119330773388829
+            ]
+          },
+          {
+            "threshold": 0.12,
+            "mean_dice": 0.10833587673733115,
+            "mean_corrected_dice": 0.12558391576402866,
+            "per_patch_dice": [
+              0.10833587673733115
+            ],
+            "per_patch_corrected_dice": [
+              0.12558391576402866
+            ]
+          },
+          {
+            "threshold": 0.13,
+            "mean_dice": 0.11389292359711563,
+            "mean_corrected_dice": 0.1330609409420389,
+            "per_patch_dice": [
+              0.11389292359711563
+            ],
+            "per_patch_corrected_dice": [
+              0.1330609409420389
+            ]
+          },
+          {
+            "threshold": 0.14,
+            "mean_dice": 0.12027947404911844,
+            "mean_corrected_dice": 0.14178310169376818,
+            "per_patch_dice": [
+              0.12027947404911844
+            ],
+            "per_patch_corrected_dice": [
+              0.14178310169376818
+            ]
+          },
+          {
+            "threshold": 0.15,
+            "mean_dice": 0.12761137388117033,
+            "mean_corrected_dice": 0.1519764223227222,
+            "per_patch_dice": [
+              0.12761137388117033
+            ],
+            "per_patch_corrected_dice": [
+              0.1519764223227222
+            ]
+          },
+          {
+            "threshold": 0.16,
+            "mean_dice": 0.1359069216797742,
+            "mean_corrected_dice": 0.16371909671160523,
+            "per_patch_dice": [
+              0.1359069216797742
+            ],
+            "per_patch_corrected_dice": [
+              0.16371909671160523
+            ]
+          },
+          {
+            "threshold": 0.17,
+            "mean_dice": 0.14519126506859098,
+            "mean_corrected_dice": 0.17714675066117472,
+            "per_patch_dice": [
+              0.14519126506859098
+            ],
+            "per_patch_corrected_dice": [
+              0.17714675066117472
+            ]
+          },
+          {
+            "threshold": 0.18,
+            "mean_dice": 0.15545576546471032,
+            "mean_corrected_dice": 0.19226883433221398,
+            "per_patch_dice": [
+              0.15545576546471032
+            ],
+            "per_patch_corrected_dice": [
+              0.19226883433221398
+            ]
+          },
+          {
+            "threshold": 0.19,
+            "mean_dice": 0.1668160117875499,
+            "mean_corrected_dice": 0.20943088666202955,
+            "per_patch_dice": [
+              0.1668160117875499
+            ],
+            "per_patch_corrected_dice": [
+              0.20943088666202955
+            ]
+          },
+          {
+            "threshold": 0.2,
+            "mean_dice": 0.17919151790930538,
+            "mean_corrected_dice": 0.22854882992864864,
+            "per_patch_dice": [
+              0.17919151790930538
+            ],
+            "per_patch_corrected_dice": [
+              0.22854882992864864
+            ]
+          },
+          {
+            "threshold": 0.21,
+            "mean_dice": 0.19268452686255452,
+            "mean_corrected_dice": 0.24996577971929398,
+            "per_patch_dice": [
+              0.19268452686255452
+            ],
+            "per_patch_corrected_dice": [
+              0.24996577971929398
+            ]
+          },
+          {
+            "threshold": 0.22,
+            "mean_dice": 0.20711225744112233,
+            "mean_corrected_dice": 0.2732194142010367,
+            "per_patch_dice": [
+              0.20711225744112233
+            ],
+            "per_patch_corrected_dice": [
+              0.2732194142010367
+            ]
+          },
+          {
+            "threshold": 0.23,
+            "mean_dice": 0.22237995917628314,
+            "mean_corrected_dice": 0.29858423572228293,
+            "per_patch_dice": [
+              0.22237995917628314
+            ],
+            "per_patch_corrected_dice": [
+              0.29858423572228293
+            ]
+          },
+          {
+            "threshold": 0.24,
+            "mean_dice": 0.23867310854988638,
+            "mean_corrected_dice": 0.326149111391852,
+            "per_patch_dice": [
+              0.23867310854988638
+            ],
+            "per_patch_corrected_dice": [
+              0.326149111391852
+            ]
+          },
+          {
+            "threshold": 0.25,
+            "mean_dice": 0.25582564624154874,
+            "mean_corrected_dice": 0.3558881207098165,
+            "per_patch_dice": [
+              0.25582564624154874
+            ],
+            "per_patch_corrected_dice": [
+              0.3558881207098165
+            ]
+          },
+          {
+            "threshold": 0.26,
+            "mean_dice": 0.2737707302654499,
+            "mean_corrected_dice": 0.38743133769288984,
+            "per_patch_dice": [
+              0.2737707302654499
+            ],
+            "per_patch_corrected_dice": [
+              0.38743133769288984
+            ]
+          },
+          {
+            "threshold": 0.27,
+            "mean_dice": 0.2922357533064099,
+            "mean_corrected_dice": 0.4205075353892938,
+            "per_patch_dice": [
+              0.2922357533064099
+            ],
+            "per_patch_corrected_dice": [
+              0.4205075353892938
+            ]
+          },
+          {
+            "threshold": 0.28,
+            "mean_dice": 0.31131777481687667,
+            "mean_corrected_dice": 0.4549913652298788,
+            "per_patch_dice": [
+              0.31131777481687667
+            ],
+            "per_patch_corrected_dice": [
+              0.4549913652298788
+            ]
+          },
+          {
+            "threshold": 0.29,
+            "mean_dice": 0.3308073704990799,
+            "mean_corrected_dice": 0.49055024669410024,
+            "per_patch_dice": [
+              0.3308073704990799
+            ],
+            "per_patch_corrected_dice": [
+              0.49055024669410024
+            ]
+          },
+          {
+            "threshold": 0.3,
+            "mean_dice": 0.3506194381193432,
+            "mean_corrected_dice": 0.5266684381061949,
+            "per_patch_dice": [
+              0.3506194381193432
+            ],
+            "per_patch_corrected_dice": [
+              0.5266684381061949
+            ]
+          },
+          {
+            "threshold": 0.31,
+            "mean_dice": 0.37037463747083704,
+            "mean_corrected_dice": 0.5624168288775355,
+            "per_patch_dice": [
+              0.37037463747083704
+            ],
+            "per_patch_corrected_dice": [
+              0.5624168288775355
+            ]
+          },
+          {
+            "threshold": 0.32,
+            "mean_dice": 0.3901175727925511,
+            "mean_corrected_dice": 0.597887407136632,
+            "per_patch_dice": [
+              0.3901175727925511
+            ],
+            "per_patch_corrected_dice": [
+              0.597887407136632
+            ]
+          },
+          {
+            "threshold": 0.33,
+            "mean_dice": 0.40930711407296005,
+            "mean_corrected_dice": 0.6322386574923909,
+            "per_patch_dice": [
+              0.40930711407296005
+            ],
+            "per_patch_corrected_dice": [
+              0.6322386574923909
+            ]
+          },
+          {
+            "threshold": 0.34,
+            "mean_dice": 0.4275528202049011,
+            "mean_corrected_dice": 0.6636212780378127,
+            "per_patch_dice": [
+              0.4275528202049011
+            ],
+            "per_patch_corrected_dice": [
+              0.6636212780378127
+            ]
+          },
+          {
+            "threshold": 0.35,
+            "mean_dice": 0.4459885824433723,
+            "mean_corrected_dice": 0.6945747947312151,
+            "per_patch_dice": [
+              0.4459885824433723
+            ],
+            "per_patch_corrected_dice": [
+              0.6945747947312151
+            ]
+          },
+          {
+            "threshold": 0.36,
+            "mean_dice": 0.4635086135575194,
+            "mean_corrected_dice": 0.7229571039435229,
+            "per_patch_dice": [
+              0.4635086135575194
+            ],
+            "per_patch_corrected_dice": [
+              0.7229571039435229
+            ]
+          },
+          {
+            "threshold": 0.37,
+            "mean_dice": 0.4799406609545043,
+            "mean_corrected_dice": 0.748490163382034,
+            "per_patch_dice": [
+              0.4799406609545043
+            ],
+            "per_patch_corrected_dice": [
+              0.748490163382034
+            ]
+          },
+          {
+            "threshold": 0.38,
+            "mean_dice": 0.4956414846319152,
+            "mean_corrected_dice": 0.7718809782559883,
+            "per_patch_dice": [
+              0.4956414846319152
+            ],
+            "per_patch_corrected_dice": [
+              0.7718809782559883
+            ]
+          },
+          {
+            "threshold": 0.39,
+            "mean_dice": 0.509873979098454,
+            "mean_corrected_dice": 0.791778872315785,
+            "per_patch_dice": [
+              0.509873979098454
+            ],
+            "per_patch_corrected_dice": [
+              0.791778872315785
+            ]
+          },
+          {
+            "threshold": 0.4,
+            "mean_dice": 0.523385751062312,
+            "mean_corrected_dice": 0.8093112836607831,
+            "per_patch_dice": [
+              0.523385751062312
+            ],
+            "per_patch_corrected_dice": [
+              0.8093112836607831
+            ]
+          },
+          {
+            "threshold": 0.41,
+            "mean_dice": 0.5350815015587588,
+            "mean_corrected_dice": 0.8232212720171366,
+            "per_patch_dice": [
+              0.5350815015587588
+            ],
+            "per_patch_corrected_dice": [
+              0.8232212720171366
+            ]
+          },
+          {
+            "threshold": 0.42,
+            "mean_dice": 0.5454990847787479,
+            "mean_corrected_dice": 0.8348950878993275,
+            "per_patch_dice": [
+              0.5454990847787479
+            ],
+            "per_patch_corrected_dice": [
+              0.8348950878993275
+            ]
+          },
+          {
+            "threshold": 0.43,
+            "mean_dice": 0.5546363994353326,
+            "mean_corrected_dice": 0.8445460325358323,
+            "per_patch_dice": [
+              0.5546363994353326
+            ],
+            "per_patch_corrected_dice": [
+              0.8445460325358323
+            ]
+          },
+          {
+            "threshold": 0.44,
+            "mean_dice": 0.5622141255854545,
+            "mean_corrected_dice": 0.8517449654958299,
+            "per_patch_dice": [
+              0.5622141255854545
+            ],
+            "per_patch_corrected_dice": [
+              0.8517449654958299
+            ]
+          },
+          {
+            "threshold": 0.45,
+            "mean_dice": 0.5683241593043157,
+            "mean_corrected_dice": 0.8569209443314761,
+            "per_patch_dice": [
+              0.5683241593043157
+            ],
+            "per_patch_corrected_dice": [
+              0.8569209443314761
+            ]
+          },
+          {
+            "threshold": 0.46,
+            "mean_dice": 0.572582040486764,
+            "mean_corrected_dice": 0.8593345233191451,
+            "per_patch_dice": [
+              0.572582040486764
+            ],
+            "per_patch_corrected_dice": [
+              0.8593345233191451
+            ]
+          },
+          {
+            "threshold": 0.47,
+            "mean_dice": 0.5754695993173087,
+            "mean_corrected_dice": 0.8597262506534896,
+            "per_patch_dice": [
+              0.5754695993173087
+            ],
+            "per_patch_corrected_dice": [
+              0.8597262506534896
+            ]
+          },
+          {
+            "threshold": 0.48,
+            "mean_dice": 0.5775689789381617,
+            "mean_corrected_dice": 0.859508875806677,
+            "per_patch_dice": [
+              0.5775689789381617
+            ],
+            "per_patch_corrected_dice": [
+              0.859508875806677
+            ]
+          },
+          {
+            "threshold": 0.49,
+            "mean_dice": 0.5778626360939915,
+            "mean_corrected_dice": 0.8576920278895598,
+            "per_patch_dice": [
+              0.5778626360939915
+            ],
+            "per_patch_corrected_dice": [
+              0.8576920278895598
+            ]
+          },
+          {
+            "threshold": 0.5,
+            "mean_dice": 0.5771792150371474,
+            "mean_corrected_dice": 0.8541494476327951,
+            "per_patch_dice": [
+              0.5771792150371474
+            ],
+            "per_patch_corrected_dice": [
+              0.8541494476327951
+            ]
+          },
+          {
+            "threshold": 0.51,
+            "mean_dice": 0.5755463067173254,
+            "mean_corrected_dice": 0.8504436966007163,
+            "per_patch_dice": [
+              0.5755463067173254
+            ],
+            "per_patch_corrected_dice": [
+              0.8504436966007163
+            ]
+          },
+          {
+            "threshold": 0.52,
+            "mean_dice": 0.5723566116762117,
+            "mean_corrected_dice": 0.8455130308544383,
+            "per_patch_dice": [
+              0.5723566116762117
+            ],
+            "per_patch_corrected_dice": [
+              0.8455130308544383
+            ]
+          },
+          {
+            "threshold": 0.53,
+            "mean_dice": 0.5686832981715191,
+            "mean_corrected_dice": 0.8406601584026194,
+            "per_patch_dice": [
+              0.5686832981715191
+            ],
+            "per_patch_corrected_dice": [
+              0.8406601584026194
+            ]
+          },
+          {
+            "threshold": 0.54,
+            "mean_dice": 0.5639697163932446,
+            "mean_corrected_dice": 0.8342804378510965,
+            "per_patch_dice": [
+              0.5639697163932446
+            ],
+            "per_patch_corrected_dice": [
+              0.8342804378510965
+            ]
+          },
+          {
+            "threshold": 0.55,
+            "mean_dice": 0.5580144821072516,
+            "mean_corrected_dice": 0.8270531679092662,
+            "per_patch_dice": [
+              0.5580144821072516
+            ],
+            "per_patch_corrected_dice": [
+              0.8270531679092662
+            ]
+          },
+          {
+            "threshold": 0.56,
+            "mean_dice": 0.5514147020712863,
+            "mean_corrected_dice": 0.8195138575736103,
+            "per_patch_dice": [
+              0.5514147020712863
+            ],
+            "per_patch_corrected_dice": [
+              0.8195138575736103
+            ]
+          },
+          {
+            "threshold": 0.57,
+            "mean_dice": 0.5441593939234143,
+            "mean_corrected_dice": 0.8114524201404051,
+            "per_patch_dice": [
+              0.5441593939234143
+            ],
+            "per_patch_corrected_dice": [
+              0.8114524201404051
+            ]
+          },
+          {
+            "threshold": 0.58,
+            "mean_dice": 0.5360792356470657,
+            "mean_corrected_dice": 0.8019616248127289,
+            "per_patch_dice": [
+              0.5360792356470657
+            ],
+            "per_patch_corrected_dice": [
+              0.8019616248127289
+            ]
+          },
+          {
+            "threshold": 0.59,
+            "mean_dice": 0.5273457984588433,
+            "mean_corrected_dice": 0.792965082631342,
+            "per_patch_dice": [
+              0.5273457984588433
+            ],
+            "per_patch_corrected_dice": [
+              0.792965082631342
+            ]
+          },
+          {
+            "threshold": 0.6,
+            "mean_dice": 0.518365317503484,
+            "mean_corrected_dice": 0.7836748833533609,
+            "per_patch_dice": [
+              0.518365317503484
+            ],
+            "per_patch_corrected_dice": [
+              0.7836748833533609
+            ]
+          },
+          {
+            "threshold": 0.61,
+            "mean_dice": 0.509306847843141,
+            "mean_corrected_dice": 0.7746355111587139,
+            "per_patch_dice": [
+              0.509306847843141
+            ],
+            "per_patch_corrected_dice": [
+              0.7746355111587139
+            ]
+          },
+          {
+            "threshold": 0.62,
+            "mean_dice": 0.4997677321952211,
+            "mean_corrected_dice": 0.764818558175254,
+            "per_patch_dice": [
+              0.4997677321952211
+            ],
+            "per_patch_corrected_dice": [
+              0.764818558175254
+            ]
+          },
+          {
+            "threshold": 0.63,
+            "mean_dice": 0.48979682196093866,
+            "mean_corrected_dice": 0.7551519120716579,
+            "per_patch_dice": [
+              0.48979682196093866
+            ],
+            "per_patch_corrected_dice": [
+              0.7551519120716579
+            ]
+          },
+          {
+            "threshold": 0.64,
+            "mean_dice": 0.47994325518433323,
+            "mean_corrected_dice": 0.745168476684823,
+            "per_patch_dice": [
+              0.47994325518433323
+            ],
+            "per_patch_corrected_dice": [
+              0.745168476684823
+            ]
+          },
+          {
+            "threshold": 0.65,
+            "mean_dice": 0.46978899445362643,
+            "mean_corrected_dice": 0.7357173948528212,
+            "per_patch_dice": [
+              0.46978899445362643
+            ],
+            "per_patch_corrected_dice": [
+              0.7357173948528212
+            ]
+          },
+          {
+            "threshold": 0.66,
+            "mean_dice": 0.4599219669670441,
+            "mean_corrected_dice": 0.7260838949803843,
+            "per_patch_dice": [
+              0.4599219669670441
+            ],
+            "per_patch_corrected_dice": [
+              0.7260838949803843
+            ]
+          },
+          {
+            "threshold": 0.67,
+            "mean_dice": 0.4500303367246233,
+            "mean_corrected_dice": 0.7163132340125327,
+            "per_patch_dice": [
+              0.4500303367246233
+            ],
+            "per_patch_corrected_dice": [
+              0.7163132340125327
+            ]
+          },
+          {
+            "threshold": 0.68,
+            "mean_dice": 0.439868378033475,
+            "mean_corrected_dice": 0.7066818825202846,
+            "per_patch_dice": [
+              0.439868378033475
+            ],
+            "per_patch_corrected_dice": [
+              0.7066818825202846
+            ]
+          },
+          {
+            "threshold": 0.69,
+            "mean_dice": 0.4293186731072029,
+            "mean_corrected_dice": 0.6969797077408607,
+            "per_patch_dice": [
+              0.4293186731072029
+            ],
+            "per_patch_corrected_dice": [
+              0.6969797077408607
+            ]
+          },
+          {
+            "threshold": 0.7,
+            "mean_dice": 0.41906134922948995,
+            "mean_corrected_dice": 0.6865674463002649,
+            "per_patch_dice": [
+              0.41906134922948995
+            ],
+            "per_patch_corrected_dice": [
+              0.6865674463002649
+            ]
+          },
+          {
+            "threshold": 0.71,
+            "mean_dice": 0.4089320165803901,
+            "mean_corrected_dice": 0.6759292794510103,
+            "per_patch_dice": [
+              0.4089320165803901
+            ],
+            "per_patch_corrected_dice": [
+              0.6759292794510103
+            ]
+          },
+          {
+            "threshold": 0.72,
+            "mean_dice": 0.3986232497593721,
+            "mean_corrected_dice": 0.6648174410499242,
+            "per_patch_dice": [
+              0.3986232497593721
+            ],
+            "per_patch_corrected_dice": [
+              0.6648174410499242
+            ]
+          },
+          {
+            "threshold": 0.73,
+            "mean_dice": 0.3888752729379261,
+            "mean_corrected_dice": 0.6554806593449164,
+            "per_patch_dice": [
+              0.3888752729379261
+            ],
+            "per_patch_corrected_dice": [
+              0.6554806593449164
+            ]
+          },
+          {
+            "threshold": 0.74,
+            "mean_dice": 0.37932323746285734,
+            "mean_corrected_dice": 0.6463509496626375,
+            "per_patch_dice": [
+              0.37932323746285734
+            ],
+            "per_patch_corrected_dice": [
+              0.6463509496626375
+            ]
+          },
+          {
+            "threshold": 0.75,
+            "mean_dice": 0.36948178489066397,
+            "mean_corrected_dice": 0.6366287282312566,
+            "per_patch_dice": [
+              0.36948178489066397
+            ],
+            "per_patch_corrected_dice": [
+              0.6366287282312566
+            ]
+          },
+          {
+            "threshold": 0.76,
+            "mean_dice": 0.3597786400210601,
+            "mean_corrected_dice": 0.6267941636475223,
+            "per_patch_dice": [
+              0.3597786400210601
+            ],
+            "per_patch_corrected_dice": [
+              0.6267941636475223
+            ]
+          },
+          {
+            "threshold": 0.77,
+            "mean_dice": 0.35056168106208785,
+            "mean_corrected_dice": 0.6167678107500286,
+            "per_patch_dice": [
+              0.35056168106208785
+            ],
+            "per_patch_corrected_dice": [
+              0.6167678107500286
+            ]
+          },
+          {
+            "threshold": 0.78,
+            "mean_dice": 0.3414388769513929,
+            "mean_corrected_dice": 0.607635925498268,
+            "per_patch_dice": [
+              0.3414388769513929
+            ],
+            "per_patch_corrected_dice": [
+              0.607635925498268
+            ]
+          },
+          {
+            "threshold": 0.79,
+            "mean_dice": 0.33240263564210815,
+            "mean_corrected_dice": 0.5985636816649568,
+            "per_patch_dice": [
+              0.33240263564210815
+            ],
+            "per_patch_corrected_dice": [
+              0.5985636816649568
+            ]
+          },
+          {
+            "threshold": 0.8,
+            "mean_dice": 0.3236179303181947,
+            "mean_corrected_dice": 0.5895747906512958,
+            "per_patch_dice": [
+              0.3236179303181947
+            ],
+            "per_patch_corrected_dice": [
+              0.5895747906512958
+            ]
+          },
+          {
+            "threshold": 0.81,
+            "mean_dice": 0.3150838387230009,
+            "mean_corrected_dice": 0.5808182427900738,
+            "per_patch_dice": [
+              0.3150838387230009
+            ],
+            "per_patch_corrected_dice": [
+              0.5808182427900738
+            ]
+          },
+          {
+            "threshold": 0.82,
+            "mean_dice": 0.3067440260788946,
+            "mean_corrected_dice": 0.571863615518192,
+            "per_patch_dice": [
+              0.3067440260788946
+            ],
+            "per_patch_corrected_dice": [
+              0.571863615518192
+            ]
+          },
+          {
+            "threshold": 0.83,
+            "mean_dice": 0.298894287906368,
+            "mean_corrected_dice": 0.5641228908733397,
+            "per_patch_dice": [
+              0.298894287906368
+            ],
+            "per_patch_corrected_dice": [
+              0.5641228908733397
+            ]
+          },
+          {
+            "threshold": 0.84,
+            "mean_dice": 0.29141574012988664,
+            "mean_corrected_dice": 0.5558181775538976,
+            "per_patch_dice": [
+              0.29141574012988664
+            ],
+            "per_patch_corrected_dice": [
+              0.5558181775538976
+            ]
+          },
+          {
+            "threshold": 0.85,
+            "mean_dice": 0.28348191865296174,
+            "mean_corrected_dice": 0.5466605120565665,
+            "per_patch_dice": [
+              0.28348191865296174
+            ],
+            "per_patch_corrected_dice": [
+              0.5466605120565665
+            ]
+          },
+          {
+            "threshold": 0.86,
+            "mean_dice": 0.27587389041934496,
+            "mean_corrected_dice": 0.538264895595626,
+            "per_patch_dice": [
+              0.27587389041934496
+            ],
+            "per_patch_corrected_dice": [
+              0.538264895595626
+            ]
+          },
+          {
+            "threshold": 0.87,
+            "mean_dice": 0.2683419961778853,
+            "mean_corrected_dice": 0.5305187106630489,
+            "per_patch_dice": [
+              0.2683419961778853
+            ],
+            "per_patch_corrected_dice": [
+              0.5305187106630489
+            ]
+          },
+          {
+            "threshold": 0.88,
+            "mean_dice": 0.26123804898870706,
+            "mean_corrected_dice": 0.5227982977271031,
+            "per_patch_dice": [
+              0.26123804898870706
+            ],
+            "per_patch_corrected_dice": [
+              0.5227982977271031
+            ]
+          },
+          {
+            "threshold": 0.89,
+            "mean_dice": 0.25430820112398667,
+            "mean_corrected_dice": 0.5147278840430495,
+            "per_patch_dice": [
+              0.25430820112398667
+            ],
+            "per_patch_corrected_dice": [
+              0.5147278840430495
+            ]
+          },
+          {
+            "threshold": 0.9,
+            "mean_dice": 0.24731474974623252,
+            "mean_corrected_dice": 0.5068480965229838,
+            "per_patch_dice": [
+              0.24731474974623252
+            ],
+            "per_patch_corrected_dice": [
+              0.5068480965229838
+            ]
+          },
+          {
+            "threshold": 0.91,
+            "mean_dice": 0.2406330698679954,
+            "mean_corrected_dice": 0.4986704758910251,
+            "per_patch_dice": [
+              0.2406330698679954
+            ],
+            "per_patch_corrected_dice": [
+              0.4986704758910251
+            ]
+          },
+          {
+            "threshold": 0.92,
+            "mean_dice": 0.23387978831042341,
+            "mean_corrected_dice": 0.4914667029824322,
+            "per_patch_dice": [
+              0.23387978831042341
+            ],
+            "per_patch_corrected_dice": [
+              0.4914667029824322
+            ]
+          },
+          {
+            "threshold": 0.93,
+            "mean_dice": 0.22735561155360828,
+            "mean_corrected_dice": 0.4838451809306884,
+            "per_patch_dice": [
+              0.22735561155360828
+            ],
+            "per_patch_corrected_dice": [
+              0.4838451809306884
+            ]
+          },
+          {
+            "threshold": 0.94,
+            "mean_dice": 0.22090956778839277,
+            "mean_corrected_dice": 0.47566252325850245,
+            "per_patch_dice": [
+              0.22090956778839277
+            ],
+            "per_patch_corrected_dice": [
+              0.47566252325850245
+            ]
+          },
+          {
+            "threshold": 0.95,
+            "mean_dice": 0.2148698599965526,
+            "mean_corrected_dice": 0.46816679344443674,
+            "per_patch_dice": [
+              0.2148698599965526
+            ],
+            "per_patch_corrected_dice": [
+              0.46816679344443674
+            ]
+          }
+        ]
+      }
+    },
+    "macaque": {
+      "binary": {
+        "method": "binary",
+        "selected_threshold": 0.95,
+        "selection_metric": "mean_corrected_dice",
+        "best_calibration_result": {
+          "threshold": 0.95,
+          "mean_dice": 0.5201376625993626,
+          "mean_corrected_dice": 0.8212932866182248,
+          "per_patch_dice": [
+            0.5201376625993626
+          ],
+          "per_patch_corrected_dice": [
+            0.8212932866182248
+          ]
+        },
+        "evaluations": [
+          {
+            "threshold": 0.05,
+            "mean_dice": 0.26073426510059444,
+            "mean_corrected_dice": 0.3728192917173723,
+            "per_patch_dice": [
+              0.26073426510059444
+            ],
+            "per_patch_corrected_dice": [
+              0.3728192917173723
+            ]
+          },
+          {
+            "threshold": 0.06,
+            "mean_dice": 0.2721211692186158,
+            "mean_corrected_dice": 0.3939483586872596,
+            "per_patch_dice": [
+              0.2721211692186158
+            ],
+            "per_patch_corrected_dice": [
+              0.3939483586872596
+            ]
+          },
+          {
+            "threshold": 0.07,
+            "mean_dice": 0.2820395168140608,
+            "mean_corrected_dice": 0.41253151794310616,
+            "per_patch_dice": [
+              0.2820395168140608
+            ],
+            "per_patch_corrected_dice": [
+              0.41253151794310616
+            ]
+          },
+          {
+            "threshold": 0.08,
+            "mean_dice": 0.29086102422955895,
+            "mean_corrected_dice": 0.42908022904473136,
+            "per_patch_dice": [
+              0.29086102422955895
+            ],
+            "per_patch_corrected_dice": [
+              0.42908022904473136
+            ]
+          },
+          {
+            "threshold": 0.09,
+            "mean_dice": 0.29870514787156194,
+            "mean_corrected_dice": 0.4438921731961145,
+            "per_patch_dice": [
+              0.29870514787156194
+            ],
+            "per_patch_corrected_dice": [
+              0.4438921731961145
+            ]
+          },
+          {
+            "threshold": 0.1,
+            "mean_dice": 0.30574467415588913,
+            "mean_corrected_dice": 0.45732163602275794,
+            "per_patch_dice": [
+              0.30574467415588913
+            ],
+            "per_patch_corrected_dice": [
+              0.45732163602275794
+            ]
+          },
+          {
+            "threshold": 0.11,
+            "mean_dice": 0.3121853893246129,
+            "mean_corrected_dice": 0.4696103505689723,
+            "per_patch_dice": [
+              0.3121853893246129
+            ],
+            "per_patch_corrected_dice": [
+              0.4696103505689723
+            ]
+          },
+          {
+            "threshold": 0.12,
+            "mean_dice": 0.31808854627250754,
+            "mean_corrected_dice": 0.48086450543478004,
+            "per_patch_dice": [
+              0.31808854627250754
+            ],
+            "per_patch_corrected_dice": [
+              0.48086450543478004
+            ]
+          },
+          {
+            "threshold": 0.13,
+            "mean_dice": 0.3235888149055573,
+            "mean_corrected_dice": 0.4912985944986984,
+            "per_patch_dice": [
+              0.3235888149055573
+            ],
+            "per_patch_corrected_dice": [
+              0.4912985944986984
+            ]
+          },
+          {
+            "threshold": 0.14,
+            "mean_dice": 0.32873779263020164,
+            "mean_corrected_dice": 0.5011081080544363,
+            "per_patch_dice": [
+              0.32873779263020164
+            ],
+            "per_patch_corrected_dice": [
+              0.5011081080544363
+            ]
+          },
+          {
+            "threshold": 0.15,
+            "mean_dice": 0.3335539701699929,
+            "mean_corrected_dice": 0.5102892154406804,
+            "per_patch_dice": [
+              0.3335539701699929
+            ],
+            "per_patch_corrected_dice": [
+              0.5102892154406804
+            ]
+          },
+          {
+            "threshold": 0.16,
+            "mean_dice": 0.3380453357146233,
+            "mean_corrected_dice": 0.5188173012241315,
+            "per_patch_dice": [
+              0.3380453357146233
+            ],
+            "per_patch_corrected_dice": [
+              0.5188173012241315
+            ]
+          },
+          {
+            "threshold": 0.17,
+            "mean_dice": 0.3423553709311934,
+            "mean_corrected_dice": 0.5268151849741974,
+            "per_patch_dice": [
+              0.3423553709311934
+            ],
+            "per_patch_corrected_dice": [
+              0.5268151849741974
+            ]
+          },
+          {
+            "threshold": 0.18,
+            "mean_dice": 0.34638442311032164,
+            "mean_corrected_dice": 0.5344433900323501,
+            "per_patch_dice": [
+              0.34638442311032164
+            ],
+            "per_patch_corrected_dice": [
+              0.5344433900323501
+            ]
+          },
+          {
+            "threshold": 0.19,
+            "mean_dice": 0.35021882033245233,
+            "mean_corrected_dice": 0.541716446932304,
+            "per_patch_dice": [
+              0.35021882033245233
+            ],
+            "per_patch_corrected_dice": [
+              0.541716446932304
+            ]
+          },
+          {
+            "threshold": 0.2,
+            "mean_dice": 0.3538680016423516,
+            "mean_corrected_dice": 0.5485307271244153,
+            "per_patch_dice": [
+              0.3538680016423516
+            ],
+            "per_patch_corrected_dice": [
+              0.5485307271244153
+            ]
+          },
+          {
+            "threshold": 0.21,
+            "mean_dice": 0.35745213168280787,
+            "mean_corrected_dice": 0.5552027233989756,
+            "per_patch_dice": [
+              0.35745213168280787
+            ],
+            "per_patch_corrected_dice": [
+              0.5552027233989756
+            ]
+          },
+          {
+            "threshold": 0.22,
+            "mean_dice": 0.3607727527384425,
+            "mean_corrected_dice": 0.5614047679392087,
+            "per_patch_dice": [
+              0.3607727527384425
+            ],
+            "per_patch_corrected_dice": [
+              0.5614047679392087
+            ]
+          },
+          {
+            "threshold": 0.23,
+            "mean_dice": 0.3639924904860463,
+            "mean_corrected_dice": 0.5673927494571962,
+            "per_patch_dice": [
+              0.3639924904860463
+            ],
+            "per_patch_corrected_dice": [
+              0.5673927494571962
+            ]
+          },
+          {
+            "threshold": 0.24,
+            "mean_dice": 0.36714952154813074,
+            "mean_corrected_dice": 0.5732665345603354,
+            "per_patch_dice": [
+              0.36714952154813074
+            ],
+            "per_patch_corrected_dice": [
+              0.5732665345603354
+            ]
+          },
+          {
+            "threshold": 0.25,
+            "mean_dice": 0.3702136338550873,
+            "mean_corrected_dice": 0.5789303737112281,
+            "per_patch_dice": [
+              0.3702136338550873
+            ],
+            "per_patch_corrected_dice": [
+              0.5789303737112281
+            ]
+          },
+          {
+            "threshold": 0.26,
+            "mean_dice": 0.3731460693233643,
+            "mean_corrected_dice": 0.5843327277817015,
+            "per_patch_dice": [
+              0.3731460693233643
+            ],
+            "per_patch_corrected_dice": [
+              0.5843327277817015
+            ]
+          },
+          {
+            "threshold": 0.27,
+            "mean_dice": 0.37598272109999414,
+            "mean_corrected_dice": 0.5895034514814493,
+            "per_patch_dice": [
+              0.37598272109999414
+            ],
+            "per_patch_corrected_dice": [
+              0.5895034514814493
+            ]
+          },
+          {
+            "threshold": 0.28,
+            "mean_dice": 0.37868533490442263,
+            "mean_corrected_dice": 0.5944746183226614,
+            "per_patch_dice": [
+              0.37868533490442263
+            ],
+            "per_patch_corrected_dice": [
+              0.5944746183226614
+            ]
+          },
+          {
+            "threshold": 0.29,
+            "mean_dice": 0.38140139652057586,
+            "mean_corrected_dice": 0.5995027843354169,
+            "per_patch_dice": [
+              0.38140139652057586
+            ],
+            "per_patch_corrected_dice": [
+              0.5995027843354169
+            ]
+          },
+          {
+            "threshold": 0.3,
+            "mean_dice": 0.38401259656447384,
+            "mean_corrected_dice": 0.6043086043815553,
+            "per_patch_dice": [
+              0.38401259656447384
+            ],
+            "per_patch_corrected_dice": [
+              0.6043086043815553
+            ]
+          },
+          {
+            "threshold": 0.31,
+            "mean_dice": 0.3866164497500907,
+            "mean_corrected_dice": 0.6089352793792472,
+            "per_patch_dice": [
+              0.3866164497500907
+            ],
+            "per_patch_corrected_dice": [
+              0.6089352793792472
+            ]
+          },
+          {
+            "threshold": 0.32,
+            "mean_dice": 0.3891041541162775,
+            "mean_corrected_dice": 0.613501105674808,
+            "per_patch_dice": [
+              0.3891041541162775
+            ],
+            "per_patch_corrected_dice": [
+              0.613501105674808
+            ]
+          },
+          {
+            "threshold": 0.33,
+            "mean_dice": 0.39160866393376653,
+            "mean_corrected_dice": 0.6179877910018025,
+            "per_patch_dice": [
+              0.39160866393376653
+            ],
+            "per_patch_corrected_dice": [
+              0.6179877910018025
+            ]
+          },
+          {
+            "threshold": 0.34,
+            "mean_dice": 0.39401513679656136,
+            "mean_corrected_dice": 0.6222335053451001,
+            "per_patch_dice": [
+              0.39401513679656136
+            ],
+            "per_patch_corrected_dice": [
+              0.6222335053451001
+            ]
+          },
+          {
+            "threshold": 0.35,
+            "mean_dice": 0.39636161354300037,
+            "mean_corrected_dice": 0.6265200927063412,
+            "per_patch_dice": [
+              0.39636161354300037
+            ],
+            "per_patch_corrected_dice": [
+              0.6265200927063412
+            ]
+          },
+          {
+            "threshold": 0.36,
+            "mean_dice": 0.39859629484027304,
+            "mean_corrected_dice": 0.6304948989323258,
+            "per_patch_dice": [
+              0.39859629484027304
+            ],
+            "per_patch_corrected_dice": [
+              0.6304948989323258
+            ]
+          },
+          {
+            "threshold": 0.37,
+            "mean_dice": 0.4008890067620782,
+            "mean_corrected_dice": 0.6345677441494171,
+            "per_patch_dice": [
+              0.4008890067620782
+            ],
+            "per_patch_corrected_dice": [
+              0.6345677441494171
+            ]
+          },
+          {
+            "threshold": 0.38,
+            "mean_dice": 0.40310328968946324,
+            "mean_corrected_dice": 0.6385068711419803,
+            "per_patch_dice": [
+              0.40310328968946324
+            ],
+            "per_patch_corrected_dice": [
+              0.6385068711419803
+            ]
+          },
+          {
+            "threshold": 0.39,
+            "mean_dice": 0.4052247455828538,
+            "mean_corrected_dice": 0.6422742665826509,
+            "per_patch_dice": [
+              0.4052247455828538
+            ],
+            "per_patch_corrected_dice": [
+              0.6422742665826509
+            ]
+          },
+          {
+            "threshold": 0.4,
+            "mean_dice": 0.4073763705799242,
+            "mean_corrected_dice": 0.6460359304695158,
+            "per_patch_dice": [
+              0.4073763705799242
+            ],
+            "per_patch_corrected_dice": [
+              0.6460359304695158
+            ]
+          },
+          {
+            "threshold": 0.41,
+            "mean_dice": 0.4095092642273468,
+            "mean_corrected_dice": 0.6497308152170322,
+            "per_patch_dice": [
+              0.4095092642273468
+            ],
+            "per_patch_corrected_dice": [
+              0.6497308152170322
+            ]
+          },
+          {
+            "threshold": 0.42,
+            "mean_dice": 0.411608747536436,
+            "mean_corrected_dice": 0.6534028419631756,
+            "per_patch_dice": [
+              0.411608747536436
+            ],
+            "per_patch_corrected_dice": [
+              0.6534028419631756
+            ]
+          },
+          {
+            "threshold": 0.43,
+            "mean_dice": 0.4136851745666937,
+            "mean_corrected_dice": 0.6569083015251851,
+            "per_patch_dice": [
+              0.4136851745666937
+            ],
+            "per_patch_corrected_dice": [
+              0.6569083015251851
+            ]
+          },
+          {
+            "threshold": 0.44,
+            "mean_dice": 0.41582568850839147,
+            "mean_corrected_dice": 0.6604244828677852,
+            "per_patch_dice": [
+              0.41582568850839147
+            ],
+            "per_patch_corrected_dice": [
+              0.6604244828677852
+            ]
+          },
+          {
+            "threshold": 0.45,
+            "mean_dice": 0.41788967653661,
+            "mean_corrected_dice": 0.6639968493625179,
+            "per_patch_dice": [
+              0.41788967653661
+            ],
+            "per_patch_corrected_dice": [
+              0.6639968493625179
+            ]
+          },
+          {
+            "threshold": 0.46,
+            "mean_dice": 0.41991288198417925,
+            "mean_corrected_dice": 0.6674105635632843,
+            "per_patch_dice": [
+              0.41991288198417925
+            ],
+            "per_patch_corrected_dice": [
+              0.6674105635632843
+            ]
+          },
+          {
+            "threshold": 0.47,
+            "mean_dice": 0.4219795261602085,
+            "mean_corrected_dice": 0.6708685174851765,
+            "per_patch_dice": [
+              0.4219795261602085
+            ],
+            "per_patch_corrected_dice": [
+              0.6708685174851765
+            ]
+          },
+          {
+            "threshold": 0.48,
+            "mean_dice": 0.42398384145133433,
+            "mean_corrected_dice": 0.6741478842116894,
+            "per_patch_dice": [
+              0.42398384145133433
+            ],
+            "per_patch_corrected_dice": [
+              0.6741478842116894
+            ]
+          },
+          {
+            "threshold": 0.49,
+            "mean_dice": 0.4259311291262337,
+            "mean_corrected_dice": 0.6774769818911245,
+            "per_patch_dice": [
+              0.4259311291262337
+            ],
+            "per_patch_corrected_dice": [
+              0.6774769818911245
+            ]
+          },
+          {
+            "threshold": 0.5,
+            "mean_dice": 0.4279696906922526,
+            "mean_corrected_dice": 0.6808186484682663,
+            "per_patch_dice": [
+              0.4279696906922526
+            ],
+            "per_patch_corrected_dice": [
+              0.6808186484682663
+            ]
+          },
+          {
+            "threshold": 0.51,
+            "mean_dice": 0.429879642069812,
+            "mean_corrected_dice": 0.6840419137471044,
+            "per_patch_dice": [
+              0.429879642069812
+            ],
+            "per_patch_corrected_dice": [
+              0.6840419137471044
+            ]
+          },
+          {
+            "threshold": 0.52,
+            "mean_dice": 0.43194225152467475,
+            "mean_corrected_dice": 0.6872579499902403,
+            "per_patch_dice": [
+              0.43194225152467475
+            ],
+            "per_patch_corrected_dice": [
+              0.6872579499902403
+            ]
+          },
+          {
+            "threshold": 0.53,
+            "mean_dice": 0.4337832405210229,
+            "mean_corrected_dice": 0.6903866752585018,
+            "per_patch_dice": [
+              0.4337832405210229
+            ],
+            "per_patch_corrected_dice": [
+              0.6903866752585018
+            ]
+          },
+          {
+            "threshold": 0.54,
+            "mean_dice": 0.4357225027325427,
+            "mean_corrected_dice": 0.6935611940512043,
+            "per_patch_dice": [
+              0.4357225027325427
+            ],
+            "per_patch_corrected_dice": [
+              0.6935611940512043
+            ]
+          },
+          {
+            "threshold": 0.55,
+            "mean_dice": 0.43764377738447874,
+            "mean_corrected_dice": 0.6967228917049365,
+            "per_patch_dice": [
+              0.43764377738447874
+            ],
+            "per_patch_corrected_dice": [
+              0.6967228917049365
+            ]
+          },
+          {
+            "threshold": 0.56,
+            "mean_dice": 0.4395929866028051,
+            "mean_corrected_dice": 0.699781317434057,
+            "per_patch_dice": [
+              0.4395929866028051
+            ],
+            "per_patch_corrected_dice": [
+              0.699781317434057
+            ]
+          },
+          {
+            "threshold": 0.57,
+            "mean_dice": 0.4415195452015217,
+            "mean_corrected_dice": 0.7028835382265222,
+            "per_patch_dice": [
+              0.4415195452015217
+            ],
+            "per_patch_corrected_dice": [
+              0.7028835382265222
+            ]
+          },
+          {
+            "threshold": 0.58,
+            "mean_dice": 0.44341383107098553,
+            "mean_corrected_dice": 0.7060194583870125,
+            "per_patch_dice": [
+              0.44341383107098553
+            ],
+            "per_patch_corrected_dice": [
+              0.7060194583870125
+            ]
+          },
+          {
+            "threshold": 0.59,
+            "mean_dice": 0.4453437673249689,
+            "mean_corrected_dice": 0.7090451847208366,
+            "per_patch_dice": [
+              0.4453437673249689
+            ],
+            "per_patch_corrected_dice": [
+              0.7090451847208366
+            ]
+          },
+          {
+            "threshold": 0.6,
+            "mean_dice": 0.44722688795949905,
+            "mean_corrected_dice": 0.7121166718828961,
+            "per_patch_dice": [
+              0.44722688795949905
+            ],
+            "per_patch_corrected_dice": [
+              0.7121166718828961
+            ]
+          },
+          {
+            "threshold": 0.61,
+            "mean_dice": 0.4490837091462418,
+            "mean_corrected_dice": 0.7152291270588322,
+            "per_patch_dice": [
+              0.4490837091462418
+            ],
+            "per_patch_corrected_dice": [
+              0.7152291270588322
+            ]
+          },
+          {
+            "threshold": 0.62,
+            "mean_dice": 0.45091147914417673,
+            "mean_corrected_dice": 0.718137370427314,
+            "per_patch_dice": [
+              0.45091147914417673
+            ],
+            "per_patch_corrected_dice": [
+              0.718137370427314
+            ]
+          },
+          {
+            "threshold": 0.63,
+            "mean_dice": 0.4527716742218791,
+            "mean_corrected_dice": 0.7209994749266176,
+            "per_patch_dice": [
+              0.4527716742218791
+            ],
+            "per_patch_corrected_dice": [
+              0.7209994749266176
+            ]
+          },
+          {
+            "threshold": 0.64,
+            "mean_dice": 0.45474650647698195,
+            "mean_corrected_dice": 0.7240507976280721,
+            "per_patch_dice": [
+              0.45474650647698195
+            ],
+            "per_patch_corrected_dice": [
+              0.7240507976280721
+            ]
+          },
+          {
+            "threshold": 0.65,
+            "mean_dice": 0.45663993452806206,
+            "mean_corrected_dice": 0.7269935756391646,
+            "per_patch_dice": [
+              0.45663993452806206
+            ],
+            "per_patch_corrected_dice": [
+              0.7269935756391646
+            ]
+          },
+          {
+            "threshold": 0.66,
+            "mean_dice": 0.4586251922547821,
+            "mean_corrected_dice": 0.7300375921436093,
+            "per_patch_dice": [
+              0.4586251922547821
+            ],
+            "per_patch_corrected_dice": [
+              0.7300375921436093
+            ]
+          },
+          {
+            "threshold": 0.67,
+            "mean_dice": 0.46053049076593966,
+            "mean_corrected_dice": 0.733058916072344,
+            "per_patch_dice": [
+              0.46053049076593966
+            ],
+            "per_patch_corrected_dice": [
+              0.733058916072344
+            ]
+          },
+          {
+            "threshold": 0.68,
+            "mean_dice": 0.46252127370939494,
+            "mean_corrected_dice": 0.7360488725849538,
+            "per_patch_dice": [
+              0.46252127370939494
+            ],
+            "per_patch_corrected_dice": [
+              0.7360488725849538
+            ]
+          },
+          {
+            "threshold": 0.69,
+            "mean_dice": 0.4645329740915372,
+            "mean_corrected_dice": 0.7390629683698297,
+            "per_patch_dice": [
+              0.4645329740915372
+            ],
+            "per_patch_corrected_dice": [
+              0.7390629683698297
+            ]
+          },
+          {
+            "threshold": 0.7,
+            "mean_dice": 0.4665175782276382,
+            "mean_corrected_dice": 0.7420824046998902,
+            "per_patch_dice": [
+              0.4665175782276382
+            ],
+            "per_patch_corrected_dice": [
+              0.7420824046998902
+            ]
+          },
+          {
+            "threshold": 0.71,
+            "mean_dice": 0.4684600899953146,
+            "mean_corrected_dice": 0.7450900695460249,
+            "per_patch_dice": [
+              0.4684600899953146
+            ],
+            "per_patch_corrected_dice": [
+              0.7450900695460249
+            ]
+          },
+          {
+            "threshold": 0.72,
+            "mean_dice": 0.4705579962968428,
+            "mean_corrected_dice": 0.7481104519859074,
+            "per_patch_dice": [
+              0.4705579962968428
+            ],
+            "per_patch_corrected_dice": [
+              0.7481104519859074
+            ]
+          },
+          {
+            "threshold": 0.73,
+            "mean_dice": 0.4726070188506962,
+            "mean_corrected_dice": 0.7512025343700824,
+            "per_patch_dice": [
+              0.4726070188506962
+            ],
+            "per_patch_corrected_dice": [
+              0.7512025343700824
+            ]
+          },
+          {
+            "threshold": 0.74,
+            "mean_dice": 0.47466837821081354,
+            "mean_corrected_dice": 0.754290746552605,
+            "per_patch_dice": [
+              0.47466837821081354
+            ],
+            "per_patch_corrected_dice": [
+              0.754290746552605
+            ]
+          },
+          {
+            "threshold": 0.75,
+            "mean_dice": 0.4768037398871243,
+            "mean_corrected_dice": 0.7575362577352122,
+            "per_patch_dice": [
+              0.4768037398871243
+            ],
+            "per_patch_corrected_dice": [
+              0.7575362577352122
+            ]
+          },
+          {
+            "threshold": 0.76,
+            "mean_dice": 0.4789905401848612,
+            "mean_corrected_dice": 0.7605498126598564,
+            "per_patch_dice": [
+              0.4789905401848612
+            ],
+            "per_patch_corrected_dice": [
+              0.7605498126598564
+            ]
+          },
+          {
+            "threshold": 0.77,
+            "mean_dice": 0.4811151045363558,
+            "mean_corrected_dice": 0.7636319647422694,
+            "per_patch_dice": [
+              0.4811151045363558
+            ],
+            "per_patch_corrected_dice": [
+              0.7636319647422694
+            ]
+          },
+          {
+            "threshold": 0.78,
+            "mean_dice": 0.4833282070560359,
+            "mean_corrected_dice": 0.7667389025736716,
+            "per_patch_dice": [
+              0.4833282070560359
+            ],
+            "per_patch_corrected_dice": [
+              0.7667389025736716
+            ]
+          },
+          {
+            "threshold": 0.79,
+            "mean_dice": 0.48555158247011543,
+            "mean_corrected_dice": 0.7701431320076167,
+            "per_patch_dice": [
+              0.48555158247011543
+            ],
+            "per_patch_corrected_dice": [
+              0.7701431320076167
+            ]
+          },
+          {
+            "threshold": 0.8,
+            "mean_dice": 0.4877170616304093,
+            "mean_corrected_dice": 0.7733236139445427,
+            "per_patch_dice": [
+              0.4877170616304093
+            ],
+            "per_patch_corrected_dice": [
+              0.7733236139445427
+            ]
+          },
+          {
+            "threshold": 0.81,
+            "mean_dice": 0.4899395771185396,
+            "mean_corrected_dice": 0.776623116979338,
+            "per_patch_dice": [
+              0.4899395771185396
+            ],
+            "per_patch_corrected_dice": [
+              0.776623116979338
+            ]
+          },
+          {
+            "threshold": 0.82,
+            "mean_dice": 0.4922031583303937,
+            "mean_corrected_dice": 0.7799426681964172,
+            "per_patch_dice": [
+              0.4922031583303937
+            ],
+            "per_patch_corrected_dice": [
+              0.7799426681964172
+            ]
+          },
+          {
+            "threshold": 0.83,
+            "mean_dice": 0.4946533965508651,
+            "mean_corrected_dice": 0.7832531381823266,
+            "per_patch_dice": [
+              0.4946533965508651
+            ],
+            "per_patch_corrected_dice": [
+              0.7832531381823266
+            ]
+          },
+          {
+            "threshold": 0.84,
+            "mean_dice": 0.49701054759392616,
+            "mean_corrected_dice": 0.7862385147686285,
+            "per_patch_dice": [
+              0.49701054759392616
+            ],
+            "per_patch_corrected_dice": [
+              0.7862385147686285
+            ]
+          },
+          {
+            "threshold": 0.85,
+            "mean_dice": 0.499409703326528,
+            "mean_corrected_dice": 0.789502772002772,
+            "per_patch_dice": [
+              0.499409703326528
+            ],
+            "per_patch_corrected_dice": [
+              0.789502772002772
+            ]
+          },
+          {
+            "threshold": 0.86,
+            "mean_dice": 0.501722453596586,
+            "mean_corrected_dice": 0.7927433385501182,
+            "per_patch_dice": [
+              0.501722453596586
+            ],
+            "per_patch_corrected_dice": [
+              0.7927433385501182
+            ]
+          },
+          {
+            "threshold": 0.87,
+            "mean_dice": 0.5040207485527598,
+            "mean_corrected_dice": 0.7958688820622789,
+            "per_patch_dice": [
+              0.5040207485527598
+            ],
+            "per_patch_corrected_dice": [
+              0.7958688820622789
+            ]
+          },
+          {
+            "threshold": 0.88,
+            "mean_dice": 0.5065169382027186,
+            "mean_corrected_dice": 0.7991800469790713,
+            "per_patch_dice": [
+              0.5065169382027186
+            ],
+            "per_patch_corrected_dice": [
+              0.7991800469790713
+            ]
+          },
+          {
+            "threshold": 0.89,
+            "mean_dice": 0.5091809280677912,
+            "mean_corrected_dice": 0.8026759580879234,
+            "per_patch_dice": [
+              0.5091809280677912
+            ],
+            "per_patch_corrected_dice": [
+              0.8026759580879234
+            ]
+          },
+          {
+            "threshold": 0.9,
+            "mean_dice": 0.5115040240913697,
+            "mean_corrected_dice": 0.8061397468299233,
+            "per_patch_dice": [
+              0.5115040240913697
+            ],
+            "per_patch_corrected_dice": [
+              0.8061397468299233
+            ]
+          },
+          {
+            "threshold": 0.91,
+            "mean_dice": 0.513963005809108,
+            "mean_corrected_dice": 0.8098824947273275,
+            "per_patch_dice": [
+              0.513963005809108
+            ],
+            "per_patch_corrected_dice": [
+              0.8098824947273275
+            ]
+          },
+          {
+            "threshold": 0.92,
+            "mean_dice": 0.5160883240494858,
+            "mean_corrected_dice": 0.8131337221789862,
+            "per_patch_dice": [
+              0.5160883240494858
+            ],
+            "per_patch_corrected_dice": [
+              0.8131337221789862
+            ]
+          },
+          {
+            "threshold": 0.93,
+            "mean_dice": 0.5181465951215987,
+            "mean_corrected_dice": 0.8162997234380374,
+            "per_patch_dice": [
+              0.5181465951215987
+            ],
+            "per_patch_corrected_dice": [
+              0.8162997234380374
+            ]
+          },
+          {
+            "threshold": 0.94,
+            "mean_dice": 0.5197522360501133,
+            "mean_corrected_dice": 0.8190568406227515,
+            "per_patch_dice": [
+              0.5197522360501133
+            ],
+            "per_patch_corrected_dice": [
+              0.8190568406227515
+            ]
+          },
+          {
+            "threshold": 0.95,
+            "mean_dice": 0.5201376625993626,
+            "mean_corrected_dice": 0.8212932866182248,
+            "per_patch_dice": [
+              0.5201376625993626
+            ],
+            "per_patch_corrected_dice": [
+              0.8212932866182248
+            ]
+          }
+        ]
+      },
+      "threeclass": {
+        "method": "threeclass",
+        "selected_threshold": 0.88,
+        "selection_metric": "mean_corrected_dice",
+        "best_calibration_result": {
+          "threshold": 0.88,
+          "mean_dice": 0.5253213367609254,
+          "mean_corrected_dice": 0.8337478743426348,
+          "per_patch_dice": [
+            0.5253213367609254
+          ],
+          "per_patch_corrected_dice": [
+            0.8337478743426348
+          ]
+        },
+        "evaluations": [
+          {
+            "threshold": 0.05,
+            "mean_dice": 0.19088471809283306,
+            "mean_corrected_dice": 0.24764162155921246,
+            "per_patch_dice": [
+              0.19088471809283306
+            ],
+            "per_patch_corrected_dice": [
+              0.24764162155921246
+            ]
+          },
+          {
+            "threshold": 0.06,
+            "mean_dice": 0.20266124866836685,
+            "mean_corrected_dice": 0.26653197752766733,
+            "per_patch_dice": [
+              0.20266124866836685
+            ],
+            "per_patch_corrected_dice": [
+              0.26653197752766733
+            ]
+          },
+          {
+            "threshold": 0.07,
+            "mean_dice": 0.21371660684697502,
+            "mean_corrected_dice": 0.2845926596745786,
+            "per_patch_dice": [
+              0.21371660684697502
+            ],
+            "per_patch_corrected_dice": [
+              0.2845926596745786
+            ]
+          },
+          {
+            "threshold": 0.08,
+            "mean_dice": 0.22406172839784125,
+            "mean_corrected_dice": 0.3017661955529111,
+            "per_patch_dice": [
+              0.22406172839784125
+            ],
+            "per_patch_corrected_dice": [
+              0.3017661955529111
+            ]
+          },
+          {
+            "threshold": 0.09,
+            "mean_dice": 0.23379546190077255,
+            "mean_corrected_dice": 0.31818232931225127,
+            "per_patch_dice": [
+              0.23379546190077255
+            ],
+            "per_patch_corrected_dice": [
+              0.31818232931225127
+            ]
+          },
+          {
+            "threshold": 0.1,
+            "mean_dice": 0.24293751611355974,
+            "mean_corrected_dice": 0.3337815271559544,
+            "per_patch_dice": [
+              0.24293751611355974
+            ],
+            "per_patch_corrected_dice": [
+              0.3337815271559544
+            ]
+          },
+          {
+            "threshold": 0.11,
+            "mean_dice": 0.2516217361374005,
+            "mean_corrected_dice": 0.3487407494798994,
+            "per_patch_dice": [
+              0.2516217361374005
+            ],
+            "per_patch_corrected_dice": [
+              0.3487407494798994
+            ]
+          },
+          {
+            "threshold": 0.12,
+            "mean_dice": 0.2598438208050357,
+            "mean_corrected_dice": 0.3630611533106723,
+            "per_patch_dice": [
+              0.2598438208050357
+            ],
+            "per_patch_corrected_dice": [
+              0.3630611533106723
+            ]
+          },
+          {
+            "threshold": 0.13,
+            "mean_dice": 0.2677356014452271,
+            "mean_corrected_dice": 0.37695057612046945,
+            "per_patch_dice": [
+              0.2677356014452271
+            ],
+            "per_patch_corrected_dice": [
+              0.37695057612046945
+            ]
+          },
+          {
+            "threshold": 0.14,
+            "mean_dice": 0.2751946994076722,
+            "mean_corrected_dice": 0.39023064772877725,
+            "per_patch_dice": [
+              0.2751946994076722
+            ],
+            "per_patch_corrected_dice": [
+              0.39023064772877725
+            ]
+          },
+          {
+            "threshold": 0.15,
+            "mean_dice": 0.2824102576887936,
+            "mean_corrected_dice": 0.40320390996416,
+            "per_patch_dice": [
+              0.2824102576887936
+            ],
+            "per_patch_corrected_dice": [
+              0.40320390996416
+            ]
+          },
+          {
+            "threshold": 0.16,
+            "mean_dice": 0.2893703771022504,
+            "mean_corrected_dice": 0.41574723575048117,
+            "per_patch_dice": [
+              0.2893703771022504
+            ],
+            "per_patch_corrected_dice": [
+              0.41574723575048117
+            ]
+          },
+          {
+            "threshold": 0.17,
+            "mean_dice": 0.2960580871655072,
+            "mean_corrected_dice": 0.42786085655127815,
+            "per_patch_dice": [
+              0.2960580871655072
+            ],
+            "per_patch_corrected_dice": [
+              0.42786085655127815
+            ]
+          },
+          {
+            "threshold": 0.18,
+            "mean_dice": 0.3024824056098194,
+            "mean_corrected_dice": 0.43954122127137824,
+            "per_patch_dice": [
+              0.3024824056098194
+            ],
+            "per_patch_corrected_dice": [
+              0.43954122127137824
+            ]
+          },
+          {
+            "threshold": 0.19,
+            "mean_dice": 0.30866695657511045,
+            "mean_corrected_dice": 0.4508689328676617,
+            "per_patch_dice": [
+              0.30866695657511045
+            ],
+            "per_patch_corrected_dice": [
+              0.4508689328676617
+            ]
+          },
+          {
+            "threshold": 0.2,
+            "mean_dice": 0.3146572518969123,
+            "mean_corrected_dice": 0.46184601251798074,
+            "per_patch_dice": [
+              0.3146572518969123
+            ],
+            "per_patch_corrected_dice": [
+              0.46184601251798074
+            ]
+          },
+          {
+            "threshold": 0.21,
+            "mean_dice": 0.3204886829111805,
+            "mean_corrected_dice": 0.4725080328487646,
+            "per_patch_dice": [
+              0.3204886829111805
+            ],
+            "per_patch_corrected_dice": [
+              0.4725080328487646
+            ]
+          },
+          {
+            "threshold": 0.22,
+            "mean_dice": 0.32611472717318574,
+            "mean_corrected_dice": 0.482921642739398,
+            "per_patch_dice": [
+              0.32611472717318574
+            ],
+            "per_patch_corrected_dice": [
+              0.482921642739398
+            ]
+          },
+          {
+            "threshold": 0.23,
+            "mean_dice": 0.3316191792913243,
+            "mean_corrected_dice": 0.4930255811360914,
+            "per_patch_dice": [
+              0.3316191792913243
+            ],
+            "per_patch_corrected_dice": [
+              0.4930255811360914
+            ]
+          },
+          {
+            "threshold": 0.24,
+            "mean_dice": 0.3370087418207158,
+            "mean_corrected_dice": 0.5029586392466656,
+            "per_patch_dice": [
+              0.3370087418207158
+            ],
+            "per_patch_corrected_dice": [
+              0.5029586392466656
+            ]
+          },
+          {
+            "threshold": 0.25,
+            "mean_dice": 0.3422506920883375,
+            "mean_corrected_dice": 0.512606328064979,
+            "per_patch_dice": [
+              0.3422506920883375
+            ],
+            "per_patch_corrected_dice": [
+              0.512606328064979
+            ]
+          },
+          {
+            "threshold": 0.26,
+            "mean_dice": 0.34730549357956525,
+            "mean_corrected_dice": 0.5219602908379571,
+            "per_patch_dice": [
+              0.34730549357956525
+            ],
+            "per_patch_corrected_dice": [
+              0.5219602908379571
+            ]
+          },
+          {
+            "threshold": 0.27,
+            "mean_dice": 0.35224586653409523,
+            "mean_corrected_dice": 0.531121956200777,
+            "per_patch_dice": [
+              0.35224586653409523
+            ],
+            "per_patch_corrected_dice": [
+              0.531121956200777
+            ]
+          },
+          {
+            "threshold": 0.28,
+            "mean_dice": 0.3571251163258633,
+            "mean_corrected_dice": 0.5401146147322498,
+            "per_patch_dice": [
+              0.3571251163258633
+            ],
+            "per_patch_corrected_dice": [
+              0.5401146147322498
+            ]
+          },
+          {
+            "threshold": 0.29,
+            "mean_dice": 0.3619386970206907,
+            "mean_corrected_dice": 0.5488823451930014,
+            "per_patch_dice": [
+              0.3619386970206907
+            ],
+            "per_patch_corrected_dice": [
+              0.5488823451930014
+            ]
+          },
+          {
+            "threshold": 0.3,
+            "mean_dice": 0.3665934792091197,
+            "mean_corrected_dice": 0.5574045219652726,
+            "per_patch_dice": [
+              0.3665934792091197
+            ],
+            "per_patch_corrected_dice": [
+              0.5574045219652726
+            ]
+          },
+          {
+            "threshold": 0.31,
+            "mean_dice": 0.37112882524818963,
+            "mean_corrected_dice": 0.565744491645394,
+            "per_patch_dice": [
+              0.37112882524818963
+            ],
+            "per_patch_corrected_dice": [
+              0.565744491645394
+            ]
+          },
+          {
+            "threshold": 0.32,
+            "mean_dice": 0.3755980328048091,
+            "mean_corrected_dice": 0.574049979395191,
+            "per_patch_dice": [
+              0.3755980328048091
+            ],
+            "per_patch_corrected_dice": [
+              0.574049979395191
+            ]
+          },
+          {
+            "threshold": 0.33,
+            "mean_dice": 0.37992670430438097,
+            "mean_corrected_dice": 0.5820189710098851,
+            "per_patch_dice": [
+              0.37992670430438097
+            ],
+            "per_patch_corrected_dice": [
+              0.5820189710098851
+            ]
+          },
+          {
+            "threshold": 0.34,
+            "mean_dice": 0.38423780023325493,
+            "mean_corrected_dice": 0.5899140062698169,
+            "per_patch_dice": [
+              0.38423780023325493
+            ],
+            "per_patch_corrected_dice": [
+              0.5899140062698169
+            ]
+          },
+          {
+            "threshold": 0.35,
+            "mean_dice": 0.388404397177247,
+            "mean_corrected_dice": 0.5975639055700227,
+            "per_patch_dice": [
+              0.388404397177247
+            ],
+            "per_patch_corrected_dice": [
+              0.5975639055700227
+            ]
+          },
+          {
+            "threshold": 0.36,
+            "mean_dice": 0.392576591696887,
+            "mean_corrected_dice": 0.6050290610250839,
+            "per_patch_dice": [
+              0.392576591696887
+            ],
+            "per_patch_corrected_dice": [
+              0.6050290610250839
+            ]
+          },
+          {
+            "threshold": 0.37,
+            "mean_dice": 0.39663886754238525,
+            "mean_corrected_dice": 0.61243666696529,
+            "per_patch_dice": [
+              0.39663886754238525
+            ],
+            "per_patch_corrected_dice": [
+              0.61243666696529
+            ]
+          },
+          {
+            "threshold": 0.38,
+            "mean_dice": 0.4005787922914888,
+            "mean_corrected_dice": 0.6197104431357271,
+            "per_patch_dice": [
+              0.4005787922914888
+            ],
+            "per_patch_corrected_dice": [
+              0.6197104431357271
+            ]
+          },
+          {
+            "threshold": 0.39,
+            "mean_dice": 0.4044980455466117,
+            "mean_corrected_dice": 0.6267478453670923,
+            "per_patch_dice": [
+              0.4044980455466117
+            ],
+            "per_patch_corrected_dice": [
+              0.6267478453670923
+            ]
+          },
+          {
+            "threshold": 0.4,
+            "mean_dice": 0.40837873917199835,
+            "mean_corrected_dice": 0.6336974425268588,
+            "per_patch_dice": [
+              0.40837873917199835
+            ],
+            "per_patch_corrected_dice": [
+              0.6336974425268588
+            ]
+          },
+          {
+            "threshold": 0.41,
+            "mean_dice": 0.4122400161394138,
+            "mean_corrected_dice": 0.6405946740215145,
+            "per_patch_dice": [
+              0.4122400161394138
+            ],
+            "per_patch_corrected_dice": [
+              0.6405946740215145
+            ]
+          },
+          {
+            "threshold": 0.42,
+            "mean_dice": 0.41596516507099096,
+            "mean_corrected_dice": 0.6472587917699794,
+            "per_patch_dice": [
+              0.41596516507099096
+            ],
+            "per_patch_corrected_dice": [
+              0.6472587917699794
+            ]
+          },
+          {
+            "threshold": 0.43,
+            "mean_dice": 0.41957440760258563,
+            "mean_corrected_dice": 0.6538039097881494,
+            "per_patch_dice": [
+              0.41957440760258563
+            ],
+            "per_patch_corrected_dice": [
+              0.6538039097881494
+            ]
+          },
+          {
+            "threshold": 0.44,
+            "mean_dice": 0.4232576121700693,
+            "mean_corrected_dice": 0.6602815579285497,
+            "per_patch_dice": [
+              0.4232576121700693
+            ],
+            "per_patch_corrected_dice": [
+              0.6602815579285497
+            ]
+          },
+          {
+            "threshold": 0.45,
+            "mean_dice": 0.4267698026262773,
+            "mean_corrected_dice": 0.6665459451636291,
+            "per_patch_dice": [
+              0.4267698026262773
+            ],
+            "per_patch_corrected_dice": [
+              0.6665459451636291
+            ]
+          },
+          {
+            "threshold": 0.46,
+            "mean_dice": 0.4302812656285782,
+            "mean_corrected_dice": 0.6726791665077312,
+            "per_patch_dice": [
+              0.4302812656285782
+            ],
+            "per_patch_corrected_dice": [
+              0.6726791665077312
+            ]
+          },
+          {
+            "threshold": 0.47,
+            "mean_dice": 0.4338058090112134,
+            "mean_corrected_dice": 0.6788823459713148,
+            "per_patch_dice": [
+              0.4338058090112134
+            ],
+            "per_patch_corrected_dice": [
+              0.6788823459713148
+            ]
+          },
+          {
+            "threshold": 0.48,
+            "mean_dice": 0.4373206936576992,
+            "mean_corrected_dice": 0.6849734044437893,
+            "per_patch_dice": [
+              0.4373206936576992
+            ],
+            "per_patch_corrected_dice": [
+              0.6849734044437893
+            ]
+          },
+          {
+            "threshold": 0.49,
+            "mean_dice": 0.4407462771796704,
+            "mean_corrected_dice": 0.6907817284473993,
+            "per_patch_dice": [
+              0.4407462771796704
+            ],
+            "per_patch_corrected_dice": [
+              0.6907817284473993
+            ]
+          },
+          {
+            "threshold": 0.5,
+            "mean_dice": 0.4441115995079036,
+            "mean_corrected_dice": 0.6966369520017247,
+            "per_patch_dice": [
+              0.4441115995079036
+            ],
+            "per_patch_corrected_dice": [
+              0.6966369520017247
+            ]
+          },
+          {
+            "threshold": 0.51,
+            "mean_dice": 0.44744968948315067,
+            "mean_corrected_dice": 0.7022787203743336,
+            "per_patch_dice": [
+              0.44744968948315067
+            ],
+            "per_patch_corrected_dice": [
+              0.7022787203743336
+            ]
+          },
+          {
+            "threshold": 0.52,
+            "mean_dice": 0.4507026326482081,
+            "mean_corrected_dice": 0.707899007356821,
+            "per_patch_dice": [
+              0.4507026326482081
+            ],
+            "per_patch_corrected_dice": [
+              0.707899007356821
+            ]
+          },
+          {
+            "threshold": 0.53,
+            "mean_dice": 0.4539521433017855,
+            "mean_corrected_dice": 0.713287817904507,
+            "per_patch_dice": [
+              0.4539521433017855
+            ],
+            "per_patch_corrected_dice": [
+              0.713287817904507
+            ]
+          },
+          {
+            "threshold": 0.54,
+            "mean_dice": 0.457119673058958,
+            "mean_corrected_dice": 0.7186755219900262,
+            "per_patch_dice": [
+              0.457119673058958
+            ],
+            "per_patch_corrected_dice": [
+              0.7186755219900262
+            ]
+          },
+          {
+            "threshold": 0.55,
+            "mean_dice": 0.46024295206552984,
+            "mean_corrected_dice": 0.7239238841059829,
+            "per_patch_dice": [
+              0.46024295206552984
+            ],
+            "per_patch_corrected_dice": [
+              0.7239238841059829
+            ]
+          },
+          {
+            "threshold": 0.56,
+            "mean_dice": 0.4633065206827962,
+            "mean_corrected_dice": 0.728980440560496,
+            "per_patch_dice": [
+              0.4633065206827962
+            ],
+            "per_patch_corrected_dice": [
+              0.728980440560496
+            ]
+          },
+          {
+            "threshold": 0.57,
+            "mean_dice": 0.466436390344913,
+            "mean_corrected_dice": 0.7340779599992576,
+            "per_patch_dice": [
+              0.466436390344913
+            ],
+            "per_patch_corrected_dice": [
+              0.7340779599992576
+            ]
+          },
+          {
+            "threshold": 0.58,
+            "mean_dice": 0.46949817928107884,
+            "mean_corrected_dice": 0.7389491802344952,
+            "per_patch_dice": [
+              0.46949817928107884
+            ],
+            "per_patch_corrected_dice": [
+              0.7389491802344952
+            ]
+          },
+          {
+            "threshold": 0.59,
+            "mean_dice": 0.47251673212749923,
+            "mean_corrected_dice": 0.7438018610949284,
+            "per_patch_dice": [
+              0.47251673212749923
+            ],
+            "per_patch_corrected_dice": [
+              0.7438018610949284
+            ]
+          },
+          {
+            "threshold": 0.6,
+            "mean_dice": 0.47537575510778945,
+            "mean_corrected_dice": 0.7483973544435691,
+            "per_patch_dice": [
+              0.47537575510778945
+            ],
+            "per_patch_corrected_dice": [
+              0.7483973544435691
+            ]
+          },
+          {
+            "threshold": 0.61,
+            "mean_dice": 0.478285322742169,
+            "mean_corrected_dice": 0.7530648463070014,
+            "per_patch_dice": [
+              0.478285322742169
+            ],
+            "per_patch_corrected_dice": [
+              0.7530648463070014
+            ]
+          },
+          {
+            "threshold": 0.62,
+            "mean_dice": 0.48116651450859643,
+            "mean_corrected_dice": 0.7576268392335341,
+            "per_patch_dice": [
+              0.48116651450859643
+            ],
+            "per_patch_corrected_dice": [
+              0.7576268392335341
+            ]
+          },
+          {
+            "threshold": 0.63,
+            "mean_dice": 0.4840095659643953,
+            "mean_corrected_dice": 0.7622597291903824,
+            "per_patch_dice": [
+              0.4840095659643953
+            ],
+            "per_patch_corrected_dice": [
+              0.7622597291903824
+            ]
+          },
+          {
+            "threshold": 0.64,
+            "mean_dice": 0.4867903265793685,
+            "mean_corrected_dice": 0.7666315302577063,
+            "per_patch_dice": [
+              0.4867903265793685
+            ],
+            "per_patch_corrected_dice": [
+              0.7666315302577063
+            ]
+          },
+          {
+            "threshold": 0.65,
+            "mean_dice": 0.48959000494378563,
+            "mean_corrected_dice": 0.7709239970142602,
+            "per_patch_dice": [
+              0.48959000494378563
+            ],
+            "per_patch_corrected_dice": [
+              0.7709239970142602
+            ]
+          },
+          {
+            "threshold": 0.66,
+            "mean_dice": 0.49244464061412857,
+            "mean_corrected_dice": 0.7752240658735708,
+            "per_patch_dice": [
+              0.49244464061412857
+            ],
+            "per_patch_corrected_dice": [
+              0.7752240658735708
+            ]
+          },
+          {
+            "threshold": 0.67,
+            "mean_dice": 0.4951585113945335,
+            "mean_corrected_dice": 0.7795024778409263,
+            "per_patch_dice": [
+              0.4951585113945335
+            ],
+            "per_patch_corrected_dice": [
+              0.7795024778409263
+            ]
+          },
+          {
+            "threshold": 0.68,
+            "mean_dice": 0.4977813464917605,
+            "mean_corrected_dice": 0.7835514412271891,
+            "per_patch_dice": [
+              0.4977813464917605
+            ],
+            "per_patch_corrected_dice": [
+              0.7835514412271891
+            ]
+          },
+          {
+            "threshold": 0.69,
+            "mean_dice": 0.5002429892280503,
+            "mean_corrected_dice": 0.7873793572224724,
+            "per_patch_dice": [
+              0.5002429892280503
+            ],
+            "per_patch_corrected_dice": [
+              0.7873793572224724
+            ]
+          },
+          {
+            "threshold": 0.7,
+            "mean_dice": 0.5027849039671469,
+            "mean_corrected_dice": 0.7910797777626252,
+            "per_patch_dice": [
+              0.5027849039671469
+            ],
+            "per_patch_corrected_dice": [
+              0.7910797777626252
+            ]
+          },
+          {
+            "threshold": 0.71,
+            "mean_dice": 0.5053368464923744,
+            "mean_corrected_dice": 0.7949108803728008,
+            "per_patch_dice": [
+              0.5053368464923744
+            ],
+            "per_patch_corrected_dice": [
+              0.7949108803728008
+            ]
+          },
+          {
+            "threshold": 0.72,
+            "mean_dice": 0.5077882534786959,
+            "mean_corrected_dice": 0.7984339204962059,
+            "per_patch_dice": [
+              0.5077882534786959
+            ],
+            "per_patch_corrected_dice": [
+              0.7984339204962059
+            ]
+          },
+          {
+            "threshold": 0.73,
+            "mean_dice": 0.510050216578517,
+            "mean_corrected_dice": 0.8018843239382335,
+            "per_patch_dice": [
+              0.510050216578517
+            ],
+            "per_patch_corrected_dice": [
+              0.8018843239382335
+            ]
+          },
+          {
+            "threshold": 0.74,
+            "mean_dice": 0.5123893850964774,
+            "mean_corrected_dice": 0.8051958236642391,
+            "per_patch_dice": [
+              0.5123893850964774
+            ],
+            "per_patch_corrected_dice": [
+              0.8051958236642391
+            ]
+          },
+          {
+            "threshold": 0.75,
+            "mean_dice": 0.5146211952915973,
+            "mean_corrected_dice": 0.8086573584132728,
+            "per_patch_dice": [
+              0.5146211952915973
+            ],
+            "per_patch_corrected_dice": [
+              0.8086573584132728
+            ]
+          },
+          {
+            "threshold": 0.76,
+            "mean_dice": 0.516769905221008,
+            "mean_corrected_dice": 0.8117287975944644,
+            "per_patch_dice": [
+              0.516769905221008
+            ],
+            "per_patch_corrected_dice": [
+              0.8117287975944644
+            ]
+          },
+          {
+            "threshold": 0.77,
+            "mean_dice": 0.5186836712895446,
+            "mean_corrected_dice": 0.8147362173267891,
+            "per_patch_dice": [
+              0.5186836712895446
+            ],
+            "per_patch_corrected_dice": [
+              0.8147362173267891
+            ]
+          },
+          {
+            "threshold": 0.78,
+            "mean_dice": 0.5205531620791848,
+            "mean_corrected_dice": 0.8176546243453076,
+            "per_patch_dice": [
+              0.5205531620791848
+            ],
+            "per_patch_corrected_dice": [
+              0.8176546243453076
+            ]
+          },
+          {
+            "threshold": 0.79,
+            "mean_dice": 0.5221724243964382,
+            "mean_corrected_dice": 0.8203475861864103,
+            "per_patch_dice": [
+              0.5221724243964382
+            ],
+            "per_patch_corrected_dice": [
+              0.8203475861864103
+            ]
+          },
+          {
+            "threshold": 0.8,
+            "mean_dice": 0.523705049202216,
+            "mean_corrected_dice": 0.8228609193906675,
+            "per_patch_dice": [
+              0.523705049202216
+            ],
+            "per_patch_corrected_dice": [
+              0.8228609193906675
+            ]
+          },
+          {
+            "threshold": 0.81,
+            "mean_dice": 0.5251769432421,
+            "mean_corrected_dice": 0.825153061417192,
+            "per_patch_dice": [
+              0.5251769432421
+            ],
+            "per_patch_corrected_dice": [
+              0.825153061417192
+            ]
+          },
+          {
+            "threshold": 0.82,
+            "mean_dice": 0.5265376409119163,
+            "mean_corrected_dice": 0.8271664315843911,
+            "per_patch_dice": [
+              0.5265376409119163
+            ],
+            "per_patch_corrected_dice": [
+              0.8271664315843911
+            ]
+          },
+          {
+            "threshold": 0.83,
+            "mean_dice": 0.5275224134137142,
+            "mean_corrected_dice": 0.8291961266523209,
+            "per_patch_dice": [
+              0.5275224134137142
+            ],
+            "per_patch_corrected_dice": [
+              0.8291961266523209
+            ]
+          },
+          {
+            "threshold": 0.84,
+            "mean_dice": 0.5281571822111087,
+            "mean_corrected_dice": 0.8309006584508953,
+            "per_patch_dice": [
+              0.5281571822111087
+            ],
+            "per_patch_corrected_dice": [
+              0.8309006584508953
+            ]
+          },
+          {
+            "threshold": 0.85,
+            "mean_dice": 0.5284041059639296,
+            "mean_corrected_dice": 0.8319857334835415,
+            "per_patch_dice": [
+              0.5284041059639296
+            ],
+            "per_patch_corrected_dice": [
+              0.8319857334835415
+            ]
+          },
+          {
+            "threshold": 0.86,
+            "mean_dice": 0.5280720203602478,
+            "mean_corrected_dice": 0.8328874349559949,
+            "per_patch_dice": [
+              0.5280720203602478
+            ],
+            "per_patch_corrected_dice": [
+              0.8328874349559949
+            ]
+          },
+          {
+            "threshold": 0.87,
+            "mean_dice": 0.5270257133135663,
+            "mean_corrected_dice": 0.8333686076879457,
+            "per_patch_dice": [
+              0.5270257133135663
+            ],
+            "per_patch_corrected_dice": [
+              0.8333686076879457
+            ]
+          },
+          {
+            "threshold": 0.88,
+            "mean_dice": 0.5253213367609254,
+            "mean_corrected_dice": 0.8337478743426348,
+            "per_patch_dice": [
+              0.5253213367609254
+            ],
+            "per_patch_corrected_dice": [
+              0.8337478743426348
+            ]
+          },
+          {
+            "threshold": 0.89,
+            "mean_dice": 0.5228091112174097,
+            "mean_corrected_dice": 0.8331464977768439,
+            "per_patch_dice": [
+              0.5228091112174097
+            ],
+            "per_patch_corrected_dice": [
+              0.8331464977768439
+            ]
+          },
+          {
+            "threshold": 0.9,
+            "mean_dice": 0.5187354855757749,
+            "mean_corrected_dice": 0.8316636266133186,
+            "per_patch_dice": [
+              0.5187354855757749
+            ],
+            "per_patch_corrected_dice": [
+              0.8316636266133186
+            ]
+          },
+          {
+            "threshold": 0.91,
+            "mean_dice": 0.5127300094389798,
+            "mean_corrected_dice": 0.8287826659834565,
+            "per_patch_dice": [
+              0.5127300094389798
+            ],
+            "per_patch_corrected_dice": [
+              0.8287826659834565
+            ]
+          },
+          {
+            "threshold": 0.92,
+            "mean_dice": 0.5047905753163984,
+            "mean_corrected_dice": 0.824937224112306,
+            "per_patch_dice": [
+              0.5047905753163984
+            ],
+            "per_patch_corrected_dice": [
+              0.824937224112306
+            ]
+          },
+          {
+            "threshold": 0.93,
+            "mean_dice": 0.49343182280995346,
+            "mean_corrected_dice": 0.8188226669757063,
+            "per_patch_dice": [
+              0.49343182280995346
+            ],
+            "per_patch_corrected_dice": [
+              0.8188226669757063
+            ]
+          },
+          {
+            "threshold": 0.94,
+            "mean_dice": 0.4768132266748124,
+            "mean_corrected_dice": 0.8099745956222755,
+            "per_patch_dice": [
+              0.4768132266748124
+            ],
+            "per_patch_corrected_dice": [
+              0.8099745956222755
+            ]
+          },
+          {
+            "threshold": 0.95,
+            "mean_dice": 0.45322140439206743,
+            "mean_corrected_dice": 0.7968525647286522,
+            "per_patch_dice": [
+              0.45322140439206743
+            ],
+            "per_patch_corrected_dice": [
+              0.7968525647286522
+            ]
+          }
+        ]
+      },
+      "fixed_threshold_baseline": {
+        "method": "fixed_threshold_baseline",
+        "selected_threshold": 0.46,
+        "selection_metric": "mean_corrected_dice",
+        "best_calibration_result": {
+          "threshold": 0.46,
+          "mean_dice": 0.5008654712884562,
+          "mean_corrected_dice": 0.7922383621273847,
+          "per_patch_dice": [
+            0.5008654712884562
+          ],
+          "per_patch_corrected_dice": [
+            0.7922383621273847
+          ]
+        },
+        "evaluations": [
+          {
+            "threshold": 0.05,
+            "mean_dice": 0.13110450365494966,
+            "mean_corrected_dice": 0.15827176133345516,
+            "per_patch_dice": [
+              0.13110450365494966
+            ],
+            "per_patch_corrected_dice": [
+              0.15827176133345516
+            ]
+          },
+          {
+            "threshold": 0.06,
+            "mean_dice": 0.13253008610185654,
+            "mean_corrected_dice": 0.16033604876001617,
+            "per_patch_dice": [
+              0.13253008610185654
+            ],
+            "per_patch_corrected_dice": [
+              0.16033604876001617
+            ]
+          },
+          {
+            "threshold": 0.07,
+            "mean_dice": 0.13416601236070308,
+            "mean_corrected_dice": 0.16271315428943528,
+            "per_patch_dice": [
+              0.13416601236070308
+            ],
+            "per_patch_corrected_dice": [
+              0.16271315428943528
+            ]
+          },
+          {
+            "threshold": 0.08,
+            "mean_dice": 0.1364808439323921,
+            "mean_corrected_dice": 0.16609073243460182,
+            "per_patch_dice": [
+              0.1364808439323921
+            ],
+            "per_patch_corrected_dice": [
+              0.16609073243460182
+            ]
+          },
+          {
+            "threshold": 0.09,
+            "mean_dice": 0.13902451409419855,
+            "mean_corrected_dice": 0.16982323179870124,
+            "per_patch_dice": [
+              0.13902451409419855
+            ],
+            "per_patch_corrected_dice": [
+              0.16982323179870124
+            ]
+          },
+          {
+            "threshold": 0.1,
+            "mean_dice": 0.1420685892895165,
+            "mean_corrected_dice": 0.17432551976454558,
+            "per_patch_dice": [
+              0.1420685892895165
+            ],
+            "per_patch_corrected_dice": [
+              0.17432551976454558
+            ]
+          },
+          {
+            "threshold": 0.11,
+            "mean_dice": 0.1461697203512997,
+            "mean_corrected_dice": 0.18043402686126717,
+            "per_patch_dice": [
+              0.1461697203512997
+            ],
+            "per_patch_corrected_dice": [
+              0.18043402686126717
+            ]
+          },
+          {
+            "threshold": 0.12,
+            "mean_dice": 0.1504791591556315,
+            "mean_corrected_dice": 0.18691630494186917,
+            "per_patch_dice": [
+              0.1504791591556315
+            ],
+            "per_patch_corrected_dice": [
+              0.18691630494186917
+            ]
+          },
+          {
+            "threshold": 0.13,
+            "mean_dice": 0.15542189978441256,
+            "mean_corrected_dice": 0.19444735678892233,
+            "per_patch_dice": [
+              0.15542189978441256
+            ],
+            "per_patch_corrected_dice": [
+              0.19444735678892233
+            ]
+          },
+          {
+            "threshold": 0.14,
+            "mean_dice": 0.16183636895234477,
+            "mean_corrected_dice": 0.20433877087822266,
+            "per_patch_dice": [
+              0.16183636895234477
+            ],
+            "per_patch_corrected_dice": [
+              0.20433877087822266
+            ]
+          },
+          {
+            "threshold": 0.15,
+            "mean_dice": 0.168332127286318,
+            "mean_corrected_dice": 0.21448652915054248,
+            "per_patch_dice": [
+              0.168332127286318
+            ],
+            "per_patch_corrected_dice": [
+              0.21448652915054248
+            ]
+          },
+          {
+            "threshold": 0.16,
+            "mean_dice": 0.1765442576276122,
+            "mean_corrected_dice": 0.22751812559612317,
+            "per_patch_dice": [
+              0.1765442576276122
+            ],
+            "per_patch_corrected_dice": [
+              0.22751812559612317
+            ]
+          },
+          {
+            "threshold": 0.17,
+            "mean_dice": 0.1846564069221771,
+            "mean_corrected_dice": 0.24061255500324938,
+            "per_patch_dice": [
+              0.1846564069221771
+            ],
+            "per_patch_corrected_dice": [
+              0.24061255500324938
+            ]
+          },
+          {
+            "threshold": 0.18,
+            "mean_dice": 0.1935815590441022,
+            "mean_corrected_dice": 0.25528551610363315,
+            "per_patch_dice": [
+              0.1935815590441022
+            ],
+            "per_patch_corrected_dice": [
+              0.25528551610363315
+            ]
+          },
+          {
+            "threshold": 0.19,
+            "mean_dice": 0.20454749315841492,
+            "mean_corrected_dice": 0.27367479246369336,
+            "per_patch_dice": [
+              0.20454749315841492
+            ],
+            "per_patch_corrected_dice": [
+              0.27367479246369336
+            ]
+          },
+          {
+            "threshold": 0.2,
+            "mean_dice": 0.21510380001189092,
+            "mean_corrected_dice": 0.2916769788716495,
+            "per_patch_dice": [
+              0.21510380001189092
+            ],
+            "per_patch_corrected_dice": [
+              0.2916769788716495
+            ]
+          },
+          {
+            "threshold": 0.21,
+            "mean_dice": 0.22639478617003325,
+            "mean_corrected_dice": 0.3112824389230151,
+            "per_patch_dice": [
+              0.22639478617003325
+            ],
+            "per_patch_corrected_dice": [
+              0.3112824389230151
+            ]
+          },
+          {
+            "threshold": 0.22,
+            "mean_dice": 0.23988359066777068,
+            "mean_corrected_dice": 0.3352468381782697,
+            "per_patch_dice": [
+              0.23988359066777068
+            ],
+            "per_patch_corrected_dice": [
+              0.3352468381782697
+            ]
+          },
+          {
+            "threshold": 0.23,
+            "mean_dice": 0.2525565146738903,
+            "mean_corrected_dice": 0.35813508251697884,
+            "per_patch_dice": [
+              0.2525565146738903
+            ],
+            "per_patch_corrected_dice": [
+              0.35813508251697884
+            ]
+          },
+          {
+            "threshold": 0.24,
+            "mean_dice": 0.2674642340639789,
+            "mean_corrected_dice": 0.3855265412192086,
+            "per_patch_dice": [
+              0.2674642340639789
+            ],
+            "per_patch_corrected_dice": [
+              0.3855265412192086
+            ]
+          },
+          {
+            "threshold": 0.25,
+            "mean_dice": 0.28126277815780526,
+            "mean_corrected_dice": 0.4111759296639293,
+            "per_patch_dice": [
+              0.28126277815780526
+            ],
+            "per_patch_corrected_dice": [
+              0.4111759296639293
+            ]
+          },
+          {
+            "threshold": 0.26,
+            "mean_dice": 0.2954215916986598,
+            "mean_corrected_dice": 0.43777640590351385,
+            "per_patch_dice": [
+              0.2954215916986598
+            ],
+            "per_patch_corrected_dice": [
+              0.43777640590351385
+            ]
+          },
+          {
+            "threshold": 0.27,
+            "mean_dice": 0.3116233461232134,
+            "mean_corrected_dice": 0.4686745004185886,
+            "per_patch_dice": [
+              0.3116233461232134
+            ],
+            "per_patch_corrected_dice": [
+              0.4686745004185886
+            ]
+          },
+          {
+            "threshold": 0.28,
+            "mean_dice": 0.3262099082728111,
+            "mean_corrected_dice": 0.49643228790536975,
+            "per_patch_dice": [
+              0.3262099082728111
+            ],
+            "per_patch_corrected_dice": [
+              0.49643228790536975
+            ]
+          },
+          {
+            "threshold": 0.29,
+            "mean_dice": 0.3426299979776336,
+            "mean_corrected_dice": 0.5278987536907014,
+            "per_patch_dice": [
+              0.3426299979776336
+            ],
+            "per_patch_corrected_dice": [
+              0.5278987536907014
+            ]
+          },
+          {
+            "threshold": 0.3,
+            "mean_dice": 0.3571366190212803,
+            "mean_corrected_dice": 0.5557077089028643,
+            "per_patch_dice": [
+              0.3571366190212803
+            ],
+            "per_patch_corrected_dice": [
+              0.5557077089028643
+            ]
+          },
+          {
+            "threshold": 0.31,
+            "mean_dice": 0.3715069696536856,
+            "mean_corrected_dice": 0.5830198953568494,
+            "per_patch_dice": [
+              0.3715069696536856
+            ],
+            "per_patch_corrected_dice": [
+              0.5830198953568494
+            ]
+          },
+          {
+            "threshold": 0.32,
+            "mean_dice": 0.38701874013225634,
+            "mean_corrected_dice": 0.612400557289317,
+            "per_patch_dice": [
+              0.38701874013225634
+            ],
+            "per_patch_corrected_dice": [
+              0.612400557289317
+            ]
+          },
+          {
+            "threshold": 0.33,
+            "mean_dice": 0.40041696180480746,
+            "mean_corrected_dice": 0.6369700831811885,
+            "per_patch_dice": [
+              0.40041696180480746
+            ],
+            "per_patch_corrected_dice": [
+              0.6369700831811885
+            ]
+          },
+          {
+            "threshold": 0.34,
+            "mean_dice": 0.4132719963885724,
+            "mean_corrected_dice": 0.6605405154855615,
+            "per_patch_dice": [
+              0.4132719963885724
+            ],
+            "per_patch_corrected_dice": [
+              0.6605405154855615
+            ]
+          },
+          {
+            "threshold": 0.35,
+            "mean_dice": 0.42687570281222814,
+            "mean_corrected_dice": 0.6847752773665469,
+            "per_patch_dice": [
+              0.42687570281222814
+            ],
+            "per_patch_corrected_dice": [
+              0.6847752773665469
+            ]
+          },
+          {
+            "threshold": 0.36,
+            "mean_dice": 0.4382183290371876,
+            "mean_corrected_dice": 0.704210877276619,
+            "per_patch_dice": [
+              0.4382183290371876
+            ],
+            "per_patch_corrected_dice": [
+              0.704210877276619
+            ]
+          },
+          {
+            "threshold": 0.37,
+            "mean_dice": 0.4500743817209198,
+            "mean_corrected_dice": 0.7239786993606712,
+            "per_patch_dice": [
+              0.4500743817209198
+            ],
+            "per_patch_corrected_dice": [
+              0.7239786993606712
+            ]
+          },
+          {
+            "threshold": 0.38,
+            "mean_dice": 0.4596895624167377,
+            "mean_corrected_dice": 0.7394024362399708,
+            "per_patch_dice": [
+              0.4596895624167377
+            ],
+            "per_patch_corrected_dice": [
+              0.7394024362399708
+            ]
+          },
+          {
+            "threshold": 0.39,
+            "mean_dice": 0.46830949610404915,
+            "mean_corrected_dice": 0.7527905908829527,
+            "per_patch_dice": [
+              0.46830949610404915
+            ],
+            "per_patch_corrected_dice": [
+              0.7527905908829527
+            ]
+          },
+          {
+            "threshold": 0.4,
+            "mean_dice": 0.47699960195690405,
+            "mean_corrected_dice": 0.7655109723342081,
+            "per_patch_dice": [
+              0.47699960195690405
+            ],
+            "per_patch_corrected_dice": [
+              0.7655109723342081
+            ]
+          },
+          {
+            "threshold": 0.41,
+            "mean_dice": 0.48352256706343993,
+            "mean_corrected_dice": 0.7742795354143084,
+            "per_patch_dice": [
+              0.48352256706343993
+            ],
+            "per_patch_corrected_dice": [
+              0.7742795354143084
+            ]
+          },
+          {
+            "threshold": 0.42,
+            "mean_dice": 0.4889655921951731,
+            "mean_corrected_dice": 0.7809639792554096,
+            "per_patch_dice": [
+              0.4889655921951731
+            ],
+            "per_patch_corrected_dice": [
+              0.7809639792554096
+            ]
+          },
+          {
+            "threshold": 0.43,
+            "mean_dice": 0.4937220317523889,
+            "mean_corrected_dice": 0.7867823614727737,
+            "per_patch_dice": [
+              0.4937220317523889
+            ],
+            "per_patch_corrected_dice": [
+              0.7867823614727737
+            ]
+          },
+          {
+            "threshold": 0.44,
+            "mean_dice": 0.4972478961050313,
+            "mean_corrected_dice": 0.7903531408876963,
+            "per_patch_dice": [
+              0.4972478961050313
+            ],
+            "per_patch_corrected_dice": [
+              0.7903531408876963
+            ]
+          },
+          {
+            "threshold": 0.45,
+            "mean_dice": 0.4997846247513973,
+            "mean_corrected_dice": 0.7921049009012175,
+            "per_patch_dice": [
+              0.4997846247513973
+            ],
+            "per_patch_corrected_dice": [
+              0.7921049009012175
+            ]
+          },
+          {
+            "threshold": 0.46,
+            "mean_dice": 0.5008654712884562,
+            "mean_corrected_dice": 0.7922383621273847,
+            "per_patch_dice": [
+              0.5008654712884562
+            ],
+            "per_patch_corrected_dice": [
+              0.7922383621273847
+            ]
+          },
+          {
+            "threshold": 0.47,
+            "mean_dice": 0.501193767159814,
+            "mean_corrected_dice": 0.7912743893078942,
+            "per_patch_dice": [
+              0.501193767159814
+            ],
+            "per_patch_corrected_dice": [
+              0.7912743893078942
+            ]
+          },
+          {
+            "threshold": 0.48,
+            "mean_dice": 0.5008054853208003,
+            "mean_corrected_dice": 0.7884280584389901,
+            "per_patch_dice": [
+              0.5008054853208003
+            ],
+            "per_patch_corrected_dice": [
+              0.7884280584389901
+            ]
+          },
+          {
+            "threshold": 0.49,
+            "mean_dice": 0.4991743450056205,
+            "mean_corrected_dice": 0.7852982365282277,
+            "per_patch_dice": [
+              0.4991743450056205
+            ],
+            "per_patch_corrected_dice": [
+              0.7852982365282277
+            ]
+          },
+          {
+            "threshold": 0.5,
+            "mean_dice": 0.4969539390621276,
+            "mean_corrected_dice": 0.7806560923010103,
+            "per_patch_dice": [
+              0.4969539390621276
+            ],
+            "per_patch_corrected_dice": [
+              0.7806560923010103
+            ]
+          },
+          {
+            "threshold": 0.51,
+            "mean_dice": 0.4935906944148862,
+            "mean_corrected_dice": 0.7748734764639955,
+            "per_patch_dice": [
+              0.4935906944148862
+            ],
+            "per_patch_corrected_dice": [
+              0.7748734764639955
+            ]
+          },
+          {
+            "threshold": 0.52,
+            "mean_dice": 0.48987907001395686,
+            "mean_corrected_dice": 0.7684858078529806,
+            "per_patch_dice": [
+              0.48987907001395686
+            ],
+            "per_patch_corrected_dice": [
+              0.7684858078529806
+            ]
+          },
+          {
+            "threshold": 0.53,
+            "mean_dice": 0.4852912927590263,
+            "mean_corrected_dice": 0.7600071028912613,
+            "per_patch_dice": [
+              0.4852912927590263
+            ],
+            "per_patch_corrected_dice": [
+              0.7600071028912613
+            ]
+          },
+          {
+            "threshold": 0.54,
+            "mean_dice": 0.4804478646619169,
+            "mean_corrected_dice": 0.7527528354032638,
+            "per_patch_dice": [
+              0.4804478646619169
+            ],
+            "per_patch_corrected_dice": [
+              0.7527528354032638
+            ]
+          },
+          {
+            "threshold": 0.55,
+            "mean_dice": 0.4751258672377895,
+            "mean_corrected_dice": 0.7440540241852457,
+            "per_patch_dice": [
+              0.4751258672377895
+            ],
+            "per_patch_corrected_dice": [
+              0.7440540241852457
+            ]
+          },
+          {
+            "threshold": 0.56,
+            "mean_dice": 0.46878651147101813,
+            "mean_corrected_dice": 0.7337002870270845,
+            "per_patch_dice": [
+              0.46878651147101813
+            ],
+            "per_patch_corrected_dice": [
+              0.7337002870270845
+            ]
+          },
+          {
+            "threshold": 0.57,
+            "mean_dice": 0.4625280598143529,
+            "mean_corrected_dice": 0.7241729232433519,
+            "per_patch_dice": [
+              0.4625280598143529
+            ],
+            "per_patch_corrected_dice": [
+              0.7241729232433519
+            ]
+          },
+          {
+            "threshold": 0.58,
+            "mean_dice": 0.4552601802017862,
+            "mean_corrected_dice": 0.7131461000069178,
+            "per_patch_dice": [
+              0.4552601802017862
+            ],
+            "per_patch_corrected_dice": [
+              0.7131461000069178
+            ]
+          },
+          {
+            "threshold": 0.59,
+            "mean_dice": 0.4483507057263913,
+            "mean_corrected_dice": 0.7032239758561095,
+            "per_patch_dice": [
+              0.4483507057263913
+            ],
+            "per_patch_corrected_dice": [
+              0.7032239758561095
+            ]
+          },
+          {
+            "threshold": 0.6,
+            "mean_dice": 0.4410408493144162,
+            "mean_corrected_dice": 0.6930986620806032,
+            "per_patch_dice": [
+              0.4410408493144162
+            ],
+            "per_patch_corrected_dice": [
+              0.6930986620806032
+            ]
+          },
+          {
+            "threshold": 0.61,
+            "mean_dice": 0.43264314704459095,
+            "mean_corrected_dice": 0.6805577586923187,
+            "per_patch_dice": [
+              0.43264314704459095
+            ],
+            "per_patch_corrected_dice": [
+              0.6805577586923187
+            ]
+          },
+          {
+            "threshold": 0.62,
+            "mean_dice": 0.4249759272626661,
+            "mean_corrected_dice": 0.6696716115448947,
+            "per_patch_dice": [
+              0.4249759272626661
+            ],
+            "per_patch_corrected_dice": [
+              0.6696716115448947
+            ]
+          },
+          {
+            "threshold": 0.63,
+            "mean_dice": 0.41717774351288106,
+            "mean_corrected_dice": 0.6585785351056727,
+            "per_patch_dice": [
+              0.41717774351288106
+            ],
+            "per_patch_corrected_dice": [
+              0.6585785351056727
+            ]
+          },
+          {
+            "threshold": 0.64,
+            "mean_dice": 0.4083423877336777,
+            "mean_corrected_dice": 0.6471057255944569,
+            "per_patch_dice": [
+              0.4083423877336777
+            ],
+            "per_patch_corrected_dice": [
+              0.6471057255944569
+            ]
+          },
+          {
+            "threshold": 0.65,
+            "mean_dice": 0.3999260823351106,
+            "mean_corrected_dice": 0.6365465751049509,
+            "per_patch_dice": [
+              0.3999260823351106
+            ],
+            "per_patch_corrected_dice": [
+              0.6365465751049509
+            ]
+          },
+          {
+            "threshold": 0.66,
+            "mean_dice": 0.3907987837138588,
+            "mean_corrected_dice": 0.6255352065396368,
+            "per_patch_dice": [
+              0.3907987837138588
+            ],
+            "per_patch_corrected_dice": [
+              0.6255352065396368
+            ]
+          },
+          {
+            "threshold": 0.67,
+            "mean_dice": 0.38268044634869813,
+            "mean_corrected_dice": 0.615062419740787,
+            "per_patch_dice": [
+              0.38268044634869813
+            ],
+            "per_patch_corrected_dice": [
+              0.615062419740787
+            ]
+          },
+          {
+            "threshold": 0.68,
+            "mean_dice": 0.3734031582147562,
+            "mean_corrected_dice": 0.6045587094647003,
+            "per_patch_dice": [
+              0.3734031582147562
+            ],
+            "per_patch_corrected_dice": [
+              0.6045587094647003
+            ]
+          },
+          {
+            "threshold": 0.69,
+            "mean_dice": 0.3637664144577004,
+            "mean_corrected_dice": 0.5923955835815783,
+            "per_patch_dice": [
+              0.3637664144577004
+            ],
+            "per_patch_corrected_dice": [
+              0.5923955835815783
+            ]
+          },
+          {
+            "threshold": 0.7,
+            "mean_dice": 0.35529113198166185,
+            "mean_corrected_dice": 0.5826845305235357,
+            "per_patch_dice": [
+              0.35529113198166185
+            ],
+            "per_patch_corrected_dice": [
+              0.5826845305235357
+            ]
+          },
+          {
+            "threshold": 0.71,
+            "mean_dice": 0.34654035913824077,
+            "mean_corrected_dice": 0.5726885927273282,
+            "per_patch_dice": [
+              0.34654035913824077
+            ],
+            "per_patch_corrected_dice": [
+              0.5726885927273282
+            ]
+          },
+          {
+            "threshold": 0.72,
+            "mean_dice": 0.3370178995792182,
+            "mean_corrected_dice": 0.5613811814723652,
+            "per_patch_dice": [
+              0.3370178995792182
+            ],
+            "per_patch_corrected_dice": [
+              0.5613811814723652
+            ]
+          },
+          {
+            "threshold": 0.73,
+            "mean_dice": 0.32864640623526825,
+            "mean_corrected_dice": 0.5513267152593394,
+            "per_patch_dice": [
+              0.32864640623526825
+            ],
+            "per_patch_corrected_dice": [
+              0.5513267152593394
+            ]
+          },
+          {
+            "threshold": 0.74,
+            "mean_dice": 0.3187559720515922,
+            "mean_corrected_dice": 0.5397670984238706,
+            "per_patch_dice": [
+              0.3187559720515922
+            ],
+            "per_patch_corrected_dice": [
+              0.5397670984238706
+            ]
+          },
+          {
+            "threshold": 0.75,
+            "mean_dice": 0.31039334160297705,
+            "mean_corrected_dice": 0.530010164201967,
+            "per_patch_dice": [
+              0.31039334160297705
+            ],
+            "per_patch_corrected_dice": [
+              0.530010164201967
+            ]
+          },
+          {
+            "threshold": 0.76,
+            "mean_dice": 0.3020424232840772,
+            "mean_corrected_dice": 0.5208820918408522,
+            "per_patch_dice": [
+              0.3020424232840772
+            ],
+            "per_patch_corrected_dice": [
+              0.5208820918408522
+            ]
+          },
+          {
+            "threshold": 0.77,
+            "mean_dice": 0.29250783790910956,
+            "mean_corrected_dice": 0.5103042483242527,
+            "per_patch_dice": [
+              0.29250783790910956
+            ],
+            "per_patch_corrected_dice": [
+              0.5103042483242527
+            ]
+          },
+          {
+            "threshold": 0.78,
+            "mean_dice": 0.28412767918497345,
+            "mean_corrected_dice": 0.5019706837059956,
+            "per_patch_dice": [
+              0.28412767918497345
+            ],
+            "per_patch_corrected_dice": [
+              0.5019706837059956
+            ]
+          },
+          {
+            "threshold": 0.79,
+            "mean_dice": 0.27480040142914064,
+            "mean_corrected_dice": 0.49092940644768085,
+            "per_patch_dice": [
+              0.27480040142914064
+            ],
+            "per_patch_corrected_dice": [
+              0.49092940644768085
+            ]
+          },
+          {
+            "threshold": 0.8,
+            "mean_dice": 0.2666389226441163,
+            "mean_corrected_dice": 0.4821698100631148,
+            "per_patch_dice": [
+              0.2666389226441163
+            ],
+            "per_patch_corrected_dice": [
+              0.4821698100631148
+            ]
+          },
+          {
+            "threshold": 0.81,
+            "mean_dice": 0.2587235211730095,
+            "mean_corrected_dice": 0.4730650394749982,
+            "per_patch_dice": [
+              0.2587235211730095
+            ],
+            "per_patch_corrected_dice": [
+              0.4730650394749982
+            ]
+          },
+          {
+            "threshold": 0.82,
+            "mean_dice": 0.249756189743434,
+            "mean_corrected_dice": 0.46286310323350416,
+            "per_patch_dice": [
+              0.249756189743434
+            ],
+            "per_patch_corrected_dice": [
+              0.46286310323350416
+            ]
+          },
+          {
+            "threshold": 0.83,
+            "mean_dice": 0.24207653241356836,
+            "mean_corrected_dice": 0.4544908444369314,
+            "per_patch_dice": [
+              0.24207653241356836
+            ],
+            "per_patch_corrected_dice": [
+              0.4544908444369314
+            ]
+          },
+          {
+            "threshold": 0.84,
+            "mean_dice": 0.23428787997773826,
+            "mean_corrected_dice": 0.4451110233589502,
+            "per_patch_dice": [
+              0.23428787997773826
+            ],
+            "per_patch_corrected_dice": [
+              0.4451110233589502
+            ]
+          },
+          {
+            "threshold": 0.85,
+            "mean_dice": 0.22620550366069175,
+            "mean_corrected_dice": 0.4347941770138846,
+            "per_patch_dice": [
+              0.22620550366069175
+            ],
+            "per_patch_corrected_dice": [
+              0.4347941770138846
+            ]
+          },
+          {
+            "threshold": 0.86,
+            "mean_dice": 0.21907663625613893,
+            "mean_corrected_dice": 0.42645903388639544,
+            "per_patch_dice": [
+              0.21907663625613893
+            ],
+            "per_patch_corrected_dice": [
+              0.42645903388639544
+            ]
+          },
+          {
+            "threshold": 0.87,
+            "mean_dice": 0.21098536338084897,
+            "mean_corrected_dice": 0.41646121869723546,
+            "per_patch_dice": [
+              0.21098536338084897
+            ],
+            "per_patch_corrected_dice": [
+              0.41646121869723546
+            ]
+          },
+          {
+            "threshold": 0.88,
+            "mean_dice": 0.2040822021984309,
+            "mean_corrected_dice": 0.4073957616644511,
+            "per_patch_dice": [
+              0.2040822021984309
+            ],
+            "per_patch_corrected_dice": [
+              0.4073957616644511
+            ]
+          },
+          {
+            "threshold": 0.89,
+            "mean_dice": 0.1974610449450407,
+            "mean_corrected_dice": 0.3987935174257531,
+            "per_patch_dice": [
+              0.1974610449450407
+            ],
+            "per_patch_corrected_dice": [
+              0.3987935174257531
+            ]
+          },
+          {
+            "threshold": 0.9,
+            "mean_dice": 0.19017993419489085,
+            "mean_corrected_dice": 0.3892485343419853,
+            "per_patch_dice": [
+              0.19017993419489085
+            ],
+            "per_patch_corrected_dice": [
+              0.3892485343419853
+            ]
+          },
+          {
+            "threshold": 0.91,
+            "mean_dice": 0.1837449709037171,
+            "mean_corrected_dice": 0.3806687565308255,
+            "per_patch_dice": [
+              0.1837449709037171
+            ],
+            "per_patch_corrected_dice": [
+              0.3806687565308255
+            ]
+          },
+          {
+            "threshold": 0.92,
+            "mean_dice": 0.17772966834063847,
+            "mean_corrected_dice": 0.3724661436369134,
+            "per_patch_dice": [
+              0.17772966834063847
+            ],
+            "per_patch_corrected_dice": [
+              0.3724661436369134
+            ]
+          },
+          {
+            "threshold": 0.93,
+            "mean_dice": 0.17081946937036965,
+            "mean_corrected_dice": 0.3624991793553015,
+            "per_patch_dice": [
+              0.17081946937036965
+            ],
+            "per_patch_corrected_dice": [
+              0.3624991793553015
+            ]
+          },
+          {
+            "threshold": 0.94,
+            "mean_dice": 0.16506767971611722,
+            "mean_corrected_dice": 0.35417387595464384,
+            "per_patch_dice": [
+              0.16506767971611722
+            ],
+            "per_patch_corrected_dice": [
+              0.35417387595464384
+            ]
+          },
+          {
+            "threshold": 0.95,
+            "mean_dice": 0.15894115830559474,
+            "mean_corrected_dice": 0.34503755017480253,
+            "per_patch_dice": [
+              0.15894115830559474
+            ],
+            "per_patch_corrected_dice": [
+              0.34503755017480253
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

@@ -130,6 +130,7 @@ def _binary_dice(pred: torch.Tensor, target: torch.Tensor) -> float:
 def _compute_three_class_metrics(
     logits: torch.Tensor,
     target: torch.Tensor,
+    selection_weights: tuple[float, float, float] = (1.0, 1.0, 1.0),
 ) -> tuple[float, float, float, float, torch.Tensor]:
     probabilities = torch.softmax(logits, dim=1)
     pred_classes = probabilities.argmax(dim=1, keepdim=True)
@@ -142,7 +143,12 @@ def _compute_three_class_metrics(
     collapsed_dice = _binary_dice(collapsed_pred, collapsed_target)
     shell_dice = _binary_dice(pred_classes == 1, shell_target)
     interior_dice = _binary_dice(pred_classes == 2, interior_target)
-    selection_score = (collapsed_dice + shell_dice + interior_dice) / 3.0
+    weight_sum = sum(selection_weights)
+    selection_score = (
+        selection_weights[0] * collapsed_dice
+        + selection_weights[1] * shell_dice
+        + selection_weights[2] * interior_dice
+    ) / weight_sum
 
     foreground_prob = probabilities[:, 1:].sum(dim=1, keepdim=True)
     return collapsed_dice, shell_dice, interior_dice, selection_score, foreground_prob
@@ -167,6 +173,14 @@ def parse_args():
     p.add_argument('--three_class_weights', type=float, nargs=3,
                    default=(1.0, 1.0, 1.0), metavar=('BG_W', 'SHELL_W', 'INTERIOR_W'),
                    help='Class weights for 3-class loss terms (background, shell, interior).')
+    p.add_argument('--nested_foreground_weight', type=float, default=1.0,
+                   help='Weight for the nested 3-class foreground-vs-background loss branch.')
+    p.add_argument('--nested_core_weight', type=float, default=1.0,
+                   help='Weight for the nested 3-class shell-vs-interior loss branch.')
+    p.add_argument('--three_class_selection_weights', type=float, nargs=3,
+                   default=(1.0, 1.0, 1.0),
+                   metavar=('FG_DICE_W', 'SHELL_DICE_W', 'INTERIOR_DICE_W'),
+                   help='Validation checkpoint-selection weights for collapsed foreground, shell, and interior Dice.')
     p.add_argument('--epochs',           type=int,   default=200)
     p.add_argument('--batch_size',       type=int,   default=2)
     p.add_argument('--lr',               type=float, default=1e-4)
@@ -208,6 +222,15 @@ def parse_args():
     p.add_argument('--subset_fraction_hi',  type=float, default=0.8,
                    help='Upper bound of the axon keep-fraction range per sample (default: 0.8). '
                         'Raise to 0.9 to ensure model sees densely-packed fascicles.')
+    p.add_argument('--density_low_range', type=float, nargs=2,
+                   default=(0.05, 0.4), metavar=('MIN', 'MAX'),
+                   help='Range for the low end of spatial axon keep-probability fields.')
+    p.add_argument('--density_high_range', type=float, nargs=2,
+                   default=(0.6, 1.0), metavar=('MIN', 'MAX'),
+                   help='Range for the high end of spatial axon keep-probability fields.')
+    p.add_argument('--density_uniform_range', type=float, nargs=2,
+                   default=(0.3, 1.0), metavar=('MIN', 'MAX'),
+                   help='Range for uniform spatial axon keep-probability fields.')
     p.add_argument('--hipct_structures', type=float, default=0.0,
                    help='Probability (0–1) of injecting synthetic HiP-CT-like '
                         'background structures (cell bodies + myelin) per sample. '
@@ -259,6 +282,25 @@ def main():
         raise ValueError('Experimental clDice is not supported for 3-class mode')
     if args.segmentation_mode == 'three_class_shell_interior' and len(args.three_class_weights) != 3:
         raise ValueError('--three_class_weights must contain exactly 3 values')
+    if len(args.three_class_selection_weights) != 3:
+        raise ValueError('--three_class_selection_weights must contain exactly 3 values')
+    three_class_selection_weights = tuple(float(v) for v in args.three_class_selection_weights)
+    if any(v < 0.0 for v in three_class_selection_weights) or sum(three_class_selection_weights) <= 0.0:
+        raise ValueError(
+            '--three_class_selection_weights must be non-negative and sum to > 0'
+        )
+    if args.nested_foreground_weight <= 0.0 or args.nested_core_weight <= 0.0:
+        raise ValueError('--nested_foreground_weight and --nested_core_weight must be > 0')
+
+    def _validate_unit_range(name: str, values: tuple[float, float]) -> tuple[float, float]:
+        lo, hi = (float(values[0]), float(values[1]))
+        if lo < 0.0 or hi > 1.0 or lo > hi:
+            raise ValueError(f'--{name} must satisfy 0 <= MIN <= MAX <= 1, got {values}')
+        return lo, hi
+
+    density_low_range = _validate_unit_range('density_low_range', args.density_low_range)
+    density_high_range = _validate_unit_range('density_high_range', args.density_high_range)
+    density_uniform_range = _validate_unit_range('density_uniform_range', args.density_uniform_range)
     if not 0.0 <= args.perlin_noise_prob <= 1.0:
         raise ValueError(
             f'--perlin_noise_prob must be in [0, 1], got {args.perlin_noise_prob}'
@@ -313,6 +355,9 @@ def main():
         background=args.background,
         hipct_structures=args.hipct_structures,
         subset_fraction=(args.subset_fraction_lo, args.subset_fraction_hi),
+        density_low_range=density_low_range,
+        density_high_range=density_high_range,
+        density_uniform_range=density_uniform_range,
         segmentation_mode=args.segmentation_mode,
     )
     if args.cache_builder == 'gpu':
@@ -457,10 +502,20 @@ def main():
                 class_weights=class_weights,
                 lambda_dice=0.5,
                 lambda_ce=0.5,
+                foreground_weight=args.nested_foreground_weight,
+                core_weight=args.nested_core_weight,
             ).to(device)
             log.info(
                 'Loss: nested foreground/core DiceCE (3-class shell/interior mode) '
-                f'with weights={class_weights}'
+                f'with class_weights={class_weights}, '
+                f'foreground_weight={args.nested_foreground_weight}, '
+                f'core_weight={args.nested_core_weight}'
+            )
+            log.info(
+                '3-class checkpoint selection weights: '
+                f'foreground={three_class_selection_weights[0]}, '
+                f'shell={three_class_selection_weights[1]}, '
+                f'interior={three_class_selection_weights[2]}'
             )
     # AdamW: decoupled weight decay regularises all weights equally regardless
     # of gradient magnitude (Loshchilov & Hutter 2019).
@@ -711,7 +766,11 @@ def main():
                         dice_metric(y_pred=val_pred_post, y=val_label_post)
                     else:
                         collapsed_dice, shell_dice, interior_dice, selection_score, foreground_prob = (
-                            _compute_three_class_metrics(val_pred, val_seg)
+                            _compute_three_class_metrics(
+                                val_pred,
+                                val_seg,
+                                selection_weights=three_class_selection_weights,
+                            )
                         )
                         val_dice_values.append(collapsed_dice)
                         val_shell_dice_values.append(shell_dice)

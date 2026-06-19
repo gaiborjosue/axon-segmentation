@@ -88,6 +88,11 @@ def parse_args() -> argparse.Namespace:
         help="Device for clDice computation. 'auto' uses CUDA when available.",
     )
     parser.add_argument(
+        "--skip-cldice",
+        action="store_true",
+        help="Skip clDice computation. Useful for CPU threshold sweeps where clDice is not used for threshold selection.",
+    )
+    parser.add_argument(
         "--topology-metrics",
         action="store_true",
         help="Compute Betti numbers and Euler characteristic for prediction and target.",
@@ -169,6 +174,7 @@ def _compute_metrics(
     valid_mask: np.ndarray,
     *,
     cldice_device: torch.device,
+    compute_cldice: bool,
 ) -> dict[str, Any]:
     valid = valid_mask.astype(bool)
     pred = prediction.astype(bool) & valid
@@ -185,7 +191,7 @@ def _compute_metrics(
     recall = _safe_divide(tp, tp + fn)
     specificity = _safe_divide(tn, tn + fp)
     accuracy = _safe_divide(tp + tn, tp + tn + fp + fn)
-    cldice = _compute_cldice(pred, truth, device=cldice_device)
+    cldice = _compute_cldice(pred, truth, device=cldice_device) if compute_cldice else None
 
     valid_voxels = int(valid.sum())
     target_positive = int(truth.sum())
@@ -492,6 +498,7 @@ def _evaluate_prediction(
     correct_neighbors: bool,
     correct_neighbor_rounds: int,
     cldice_device: torch.device,
+    compute_cldice: bool,
     topology_metrics: bool,
     topology_connectivity: int,
     corrected_topology_metrics: bool,
@@ -502,6 +509,7 @@ def _evaluate_prediction(
             target,
             valid_mask,
             cldice_device=cldice_device,
+            compute_cldice=compute_cldice,
         ),
     }
     if topology_metrics:
@@ -524,6 +532,7 @@ def _evaluate_prediction(
             target,
             valid_mask,
             cldice_device=cldice_device,
+            compute_cldice=compute_cldice,
         )
         if topology_metrics and corrected_topology_metrics:
             evaluation["corrected_topology"] = _compute_topology_comparison(
@@ -586,6 +595,7 @@ def main() -> int:
                 correct_neighbors=args.correct_neighbors,
                 correct_neighbor_rounds=args.correct_neighbor_rounds,
                 cldice_device=cldice_device,
+                compute_cldice=not args.skip_cldice,
                 topology_metrics=args.topology_metrics and args.topology_on_sweep,
                 topology_connectivity=args.topology_connectivity,
                 corrected_topology_metrics=args.corrected_topology_metrics,
@@ -603,6 +613,7 @@ def main() -> int:
             "shape": list(prediction_raw.shape),
             "mode": "threshold_sweep",
             "cldice_device": str(cldice_device),
+            "cldice_enabled": not args.skip_cldice,
             "topology_metrics": {
                 "enabled": bool(args.topology_metrics and args.topology_on_sweep),
                 "connectivity": args.topology_connectivity,
@@ -640,6 +651,7 @@ def main() -> int:
             correct_neighbors=args.correct_neighbors,
             correct_neighbor_rounds=args.correct_neighbor_rounds,
             cldice_device=cldice_device,
+            compute_cldice=not args.skip_cldice,
             topology_metrics=args.topology_metrics,
             topology_connectivity=args.topology_connectivity,
             corrected_topology_metrics=args.corrected_topology_metrics,
@@ -651,6 +663,7 @@ def main() -> int:
             "shape": list(prediction_raw.shape),
             "mode": "single_threshold",
             "cldice_device": str(cldice_device),
+            "cldice_enabled": not args.skip_cldice,
             "topology_metrics": {
                 "enabled": bool(args.topology_metrics),
                 "connectivity": args.topology_connectivity,

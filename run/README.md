@@ -21,3 +21,4 @@ Auxiliary but still useful:
 
 - `run/production/export_dense_three_class_labels.sbatch`: export dense shell/interior targets for inspection.
 - `run/production/save_hipct_crops.sbatch`: export review crops from a HiP-CT inference directory, including 3-class class/shell/interior volumes.
+- `run/production/stage_microct_dandi_derivative.sbatch`: export top-level microCT inference volumes to OME-Zarr on a compute node and stage a short-name derivative branch under the `001769` DANDI root.

@@ -185,7 +185,13 @@ class DensityDistribution:
         return np.full(shape, value, dtype=np.float32)
 
     @classmethod
-    def random(cls, shape: Tuple[int, ...]) -> Tuple[np.ndarray, dict]:
+    def random(
+        cls,
+        shape: Tuple[int, ...],
+        low_range: Tuple[float, float] = (0.05, 0.4),
+        high_range: Tuple[float, float] = (0.6, 1.0),
+        uniform_range: Tuple[float, float] = (0.3, 1.0),
+    ) -> Tuple[np.ndarray, dict]:
         """Sample a random distribution type and parameters.
 
         Returns
@@ -195,8 +201,8 @@ class DensityDistribution:
         """
         kind      = pyrandom.choice(['linear', 'sigmoid', 'gaussian', 'radial', 'uniform'])
         axis      = pyrandom.randint(0, 2)
-        low       = pyrandom.uniform(0.05, 0.4)
-        high      = pyrandom.uniform(0.6, 1.0)
+        low       = pyrandom.uniform(*low_range)
+        high      = pyrandom.uniform(*high_range)
         ascending = pyrandom.choice([True, False])
         config    = dict(type=kind, axis=axis, low=low, high=high, ascending=ascending)
 
@@ -218,7 +224,7 @@ class DensityDistribution:
             config.update(center_frac=center_frac, invert=invert)
             field = cls.radial(shape, low, high, center_frac, invert)
         else:   # uniform
-            value = pyrandom.uniform(0.3, 1.0)
+            value = pyrandom.uniform(*uniform_range)
             config['value'] = value
             field = cls.uniform(shape, value)
 
@@ -291,6 +297,12 @@ class AxonSubsetDataset(Dataset):
     subset_fraction : (float, float)
         Uniform range for the axon keep-fraction when
         ``apply_density_curve`` is False.
+    density_low_range : (float, float)
+        Sampling range for the low end of spatial keep-probability fields.
+    density_high_range : (float, float)
+        Sampling range for the high end of spatial keep-probability fields.
+    density_uniform_range : (float, float)
+        Sampling range for uniform keep-probability fields.
     apply_density_curve : bool
         Apply a random spatial keep-probability field instead of a
         flat per-volume fraction.
@@ -325,6 +337,9 @@ class AxonSubsetDataset(Dataset):
         self,
         label_dir: Union[str, Path],
         subset_fraction: Tuple[float, float] = (0.3, 0.8),
+        density_low_range: Tuple[float, float] = (0.05, 0.4),
+        density_high_range: Tuple[float, float] = (0.6, 1.0),
+        density_uniform_range: Tuple[float, float] = (0.3, 1.0),
         apply_density_curve: bool = True,
         generate_images: bool = True,
         transform: Optional[Callable] = None,
@@ -341,6 +356,9 @@ class AxonSubsetDataset(Dataset):
     ):
         self.label_dir              = Path(label_dir)
         self.subset_fraction        = subset_fraction
+        self.density_low_range      = density_low_range
+        self.density_high_range     = density_high_range
+        self.density_uniform_range  = density_uniform_range
         self.apply_density_curve    = apply_density_curve
         self.generate_images        = generate_images
         self.transform              = transform
@@ -481,7 +499,12 @@ class AxonSubsetDataset(Dataset):
         _t0 = _time.monotonic()
         keep_prob_field = density_config = None
         if self.apply_density_curve:
-            keep_prob_field, density_config = DensityDistribution.random(labels.shape)
+            keep_prob_field, density_config = DensityDistribution.random(
+                labels.shape,
+                low_range=self.density_low_range,
+                high_range=self.density_high_range,
+                uniform_range=self.density_uniform_range,
+            )
 
         subset_labels, subset_prob, subset_info = self._apply_subset(
             labels, prob, keep_prob_field
@@ -518,7 +541,12 @@ class AxonSubsetDataset(Dataset):
                     f'idx={idx} vol={vol_idx} redraw={_fg_redraws} '
                     f'fg_count={fg_count} below_min={_MIN_FG_VOXELS}'
                 )
-                keep_prob_field, _ = DensityDistribution.random(labels.shape)
+                keep_prob_field, _ = DensityDistribution.random(
+                    labels.shape,
+                    low_range=self.density_low_range,
+                    high_range=self.density_high_range,
+                    uniform_range=self.density_uniform_range,
+                )
                 s_labels, s_prob, subset_info = self._apply_subset(
                     labels, prob, keep_prob_field)
                 label_t = torch.from_numpy(s_labels).unsqueeze(0).long()
