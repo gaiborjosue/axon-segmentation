@@ -1,3 +1,5 @@
+LATEST VERSION OF THIS REPO HAS BEEN MOVED TO: https://github.com/lincbrain/axonsynth
+
 # Axon Segmentation Experiments
 
 This repo contains the end-to-end pipeline for synthetic 3D axon segmentation:
